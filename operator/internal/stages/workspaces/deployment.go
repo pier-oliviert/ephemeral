@@ -1,4 +1,4 @@
-package stages
+package workspaces
 
 import (
 	"context"
@@ -24,15 +24,7 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 		service := core.Service{
 			ObjectMeta: meta.ObjectMeta{
 				Name:      component.Name,
-				Namespace: workspace.Namespace,
-				OwnerReferences: []meta.OwnerReference{
-					{
-						APIVersion: workspace.APIVersion,
-						Kind:       workspace.Kind,
-						Name:       workspace.Name,
-						UID:        workspace.UID,
-					},
-				},
+				Namespace: workspace.Status.Namespace,
 			},
 			Spec: core.ServiceSpec{
 				Selector: map[string]string{
@@ -61,15 +53,7 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 			ingress := &networking.Ingress{
 				ObjectMeta: meta.ObjectMeta{
 					Name:      "click-mania",
-					Namespace: workspace.Namespace,
-					OwnerReferences: []meta.OwnerReference{
-						{
-							APIVersion: workspace.APIVersion,
-							Kind:       workspace.Kind,
-							Name:       workspace.Name,
-							UID:        workspace.UID,
-						},
-					},
+					Namespace: workspace.Status.Namespace,
 				},
 				Spec: networking.IngressSpec{
 					IngressClassName: &ingressClassName,
@@ -109,17 +93,9 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 		pod := core.Pod{
 			ObjectMeta: meta.ObjectMeta{
 				GenerateName: fmt.Sprintf("%s-", component.Name),
-				Namespace:    workspace.Namespace,
+				Namespace:    workspace.Status.Namespace,
 				Labels: map[string]string{
 					"app.kubernetes.io/name": component.Name,
-				},
-				OwnerReferences: []meta.OwnerReference{
-					{
-						APIVersion: workspace.APIVersion,
-						Kind:       workspace.Kind,
-						Name:       workspace.Name,
-						UID:        workspace.UID,
-					},
 				},
 			},
 			Spec: core.PodSpec{
@@ -150,7 +126,7 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 		}
 	}
 
-	workspace.Status.Stage = spot.WorkspaceStageRunning
+	workspace.Status.Stage = spot.WorkspaceStageDeployed
 
 	return d.Client.SubResource("status").Update(ctx, workspace)
 }

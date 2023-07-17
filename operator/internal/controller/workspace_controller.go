@@ -18,16 +18,18 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	spot "github.com/releasehub-com/spot/operator/api/v1alpha1"
-	"github.com/releasehub-com/spot/operator/internal/stages"
+	stages "github.com/releasehub-com/spot/operator/internal/stages/workspaces"
 )
 
 // WorkspaceReconciler reconciles a Workspace object
@@ -54,28 +56,60 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	// TODO: Temporary fix until the Admission hook is working
+	// and the workspace defaults to Initialized.
+	if workspace.Status.Stage == spot.WorkspaceStage("") {
+		workspace.Status.Stage = spot.WorkspaceStageInitialized
+		// Let's force the reconciler to run again instead. Not optimal, but as
+		// mentioned above, this is temporary.
+		if err := r.Status().Update(ctx, &workspace); err != nil {
+			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// TODO: Move this in admission webhook, this cannot stay here
+	// because it causes a racing conditions as K8s doesn't support
+	// updating spec & sub-resource in the same reconciler loop
+	if !controllerutil.ContainsFinalizer(&workspace, stages.Finalizer) {
+		controllerutil.AddFinalizer(&workspace, stages.Finalizer)
+		if err := r.Client.Update(ctx, &workspace); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
 	switch workspace.Status.Stage {
 
 	// The Workspace was just created and nothing has happened to it
 	// yet. The first step is to start the building process.
 	case spot.WorkspaceStageInitialized:
-		r.EventRecorder.Event(&workspace, "Normal", "Initialized", "Workspace initialized")
-		builder := stages.Builder{Client: r.Client}
-		err := builder.Start(ctx, &workspace)
+		// Let's first create a namespace for the workspace
+		err := stages.AssignNamespace(ctx, &workspace, r.Client)
 		if err != nil {
 			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
 		}
+
+		r.EventRecorder.Event(&workspace, "Normal", "Initialized", fmt.Sprintf("Workspace initialized, assigned to namespace: %s", workspace.Status.Namespace))
 
 	// The Workspace launched the builders but those have not
 	// completed yet. Need to monitor each of the builder object
 	// to see if they are completed and we can move forward to the next
 	// stage
 	case spot.WorkspaceStageBuilding:
-		r.EventRecorder.Event(&workspace, "Normal", "Building", "Waiting for builds to complete")
-		builder := stages.Builder{Client: r.Client}
-		err := builder.Update(ctx, &workspace)
-		if err != nil {
-			return ctrl.Result{}, err
+		if len(workspace.Status.Builds) == 0 {
+			r.EventRecorder.Event(&workspace, "Normal", string(spot.WorkspaceStageBuilding), "deploying builders")
+			if err := stages.Build(ctx, &workspace, r.Client); err != nil {
+				return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
+			}
+		} else {
+			if err := stages.MonitorBuilds(ctx, &workspace, r.Client); err != nil {
+				return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
+			}
+
+			if workspace.Status.Stage == spot.WorkspaceStageBuilding {
+				r.EventRecorder.Event(&workspace, "Normal", string(spot.WorkspaceStageBuilding), "waiting for builds to complete")
+			}
 		}
 
 	case spot.WorkspaceStageDeploying:
@@ -84,6 +118,14 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err := deployment.Start(ctx, &workspace); err != nil {
 			return ctrl.Result{}, err
 		}
+	}
+
+	if !workspace.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Workspace is marked for deletion, need to clear the namespace
+		if err := stages.DestroyNamespace(ctx, &workspace, r.Client); err != nil {
+			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
+		}
+
 	}
 
 	return ctrl.Result{}, nil

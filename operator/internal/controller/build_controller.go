@@ -201,7 +201,7 @@ func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*cor
 	hostPathType := core.HostPathDirectoryOrCreate
 	pod := &core.Pod{
 		ObjectMeta: meta.ObjectMeta{
-			Namespace:    "spot-system",
+			Namespace:    build.Namespace,
 			GenerateName: fmt.Sprintf("%s-", build.Name),
 			Annotations: map[string]string{
 				"container.apparmor.security.beta.kubernetes.io/buildkit": "unconfined",

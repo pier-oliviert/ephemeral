@@ -231,9 +231,10 @@ spec:
                 type: string
               stage:
                 enum:
+                - Initialized
                 - Building
                 - Deploying
-                - Running
+                - Deployed
                 - Updating
                 - Errored
                 - Terminating

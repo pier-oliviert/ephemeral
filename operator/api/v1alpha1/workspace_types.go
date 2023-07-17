@@ -20,14 +20,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +kubebuilder:validation:Enum=Building;Deploying;Running;Updating;Errored;Terminating;Deleted
+// +kubebuilder:validation:Enum=Initialized;Building;Deploying;Deployed;Updating;Errored;Terminating;Deleted
 type WorkspaceStage string
 
 const (
-	WorkspaceStageInitialized WorkspaceStage = "" // TODO: I would prefer if it was a string, but I can't get the enum to default to this otherwise.
+	WorkspaceStageInitialized WorkspaceStage = "Initialized"
 	WorkspaceStageBuilding    WorkspaceStage = "Building"
 	WorkspaceStageDeploying   WorkspaceStage = "Deploying"
-	WorkspaceStageRunning     WorkspaceStage = "Running"
+	WorkspaceStageDeployed    WorkspaceStage = "Deployed"
 	WorkspaceStageUpdating    WorkspaceStage = "Updating"
 	WorkspaceStageError       WorkspaceStage = "Errored"
 	WorkspaceStageTerminating WorkspaceStage = "Terminating"
