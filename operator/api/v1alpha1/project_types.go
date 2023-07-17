@@ -20,9 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // ProjectSpec defines the desired state of Project
 type ProjectSpec struct {
 	// Name of the project, this doesn't have any other use beside
@@ -32,7 +29,16 @@ type ProjectSpec struct {
 
 	// Template to use for workspace that belongs to this project
 	// This template can be modified but won't update existing workspace.
-	Template WorkspaceSpec `json:"template"`
+	Template ProjectTemplateSpec `json:"template"`
+}
+
+type ProjectTemplateSpec struct {
+	// Collection of all the components that are required for this
+	// workspace to deploy.
+	Components []ComponentSpec `json:"components,omitempty"`
+
+	// Defines all the environments that will be needed for this workspace
+	Environments []EnvironmentSpec `json:"environments"`
 }
 
 // ProjectStatus defines the observed state of Project

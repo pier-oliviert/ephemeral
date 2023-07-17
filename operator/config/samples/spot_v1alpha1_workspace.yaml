@@ -11,8 +11,6 @@ metadata:
   namespace: spot-system
 spec:
   tag: "some-test"
-  project:
-    name: "spacedust"
   branch:
     name: "rel-1234-my-branch"
     url: "https://github.com/releasehub-com/click-mania-test.git"

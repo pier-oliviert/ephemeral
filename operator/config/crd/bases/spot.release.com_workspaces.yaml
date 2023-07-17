@@ -175,13 +175,6 @@ spec:
                   - value
                   type: object
                 type: array
-              project:
-                description: Name of the project this workspace belongs to. Can maybe
-                  replace it with a metadata label and owner reference.
-                properties:
-                  name:
-                    type: string
-                type: object
               tag:
                 description: Default tag for all the images that are build that don't
                   have a tag specified to them. If no value is set, it will be created
@@ -190,7 +183,6 @@ spec:
             required:
             - branch
             - environments
-            - project
             type: object
           status:
             description: WorkspaceStatus defines the observed state of Workspace

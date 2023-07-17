@@ -36,7 +36,164 @@ spec:
             description: ProjectSpec defines the desired state of Project
             properties:
               name:
+                description: Name of the project, this doesn't have any other use
+                  beside defining what this project is. Can be named anything and
+                  doesn't have restriction.
                 type: string
+              template:
+                description: Template to use for workspace that belongs to this project
+                  This template can be modified but won't update existing workspace.
+                properties:
+                  branch:
+                    properties:
+                      name:
+                        type: string
+                      url:
+                        type: string
+                    required:
+                    - name
+                    - url
+                    type: object
+                  components:
+                    description: Collection of all the components that are required
+                      for this workspace to deploy.
+                    items:
+                      properties:
+                        command:
+                          description: Execute a different entrypoint command than
+                            the one specified in the image
+                          items:
+                            type: string
+                          type: array
+                        environments:
+                          description: Links a component to an EnvironmentSpec entry.
+                          items:
+                            properties:
+                              as:
+                                description: If the Environment needs to have a different
+                                  name than the one specified, `as` can be used to
+                                  give it an alias.
+                                type: string
+                              name:
+                                description: Name of the EnvironmentSpec at the Workspace
+                                  level. The name is going to be used as the name
+                                  of the ENV inside the component's pod.
+                                type: string
+                              value:
+                                description: Value generally  is going to be generated
+                                  from the Workspace's `EnvironmentSpec`
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          type: array
+                        image:
+                          description: Defines how the image is built for this component
+                            The workspace will aggregate all the images at build time
+                            and will deduplicate the images so only 1 unique image
+                            is built.
+                          properties:
+                            name:
+                              description: Name of the image. If the image is not
+                                an official one and a URL needs to be provided, `RegistrySpec`
+                                needs to provide that URL.
+                              type: string
+                            registry:
+                              description: Registry is where all the information for
+                                the container registry lives. It needs to be properly
+                                configured for the build to be pushed successfully.
+                                A build is pushed to the registry only if the `RepositoryContext`
+                                exists with this `Registry`
+                              properties:
+                                type:
+                                  description: 'TODO: Not sure this is the way to
+                                    go, might replace it'
+                                  type: string
+                                url:
+                                  type: string
+                              required:
+                              - type
+                              - url
+                              type: object
+                            repository_context:
+                              description: RepositoryContext information is passed
+                                down to buildkit as instruction on how to proceed
+                                with the repository. The image will be build from
+                                source if the `RepositoryContext` is set.
+                              properties:
+                                dockerfile:
+                                  description: Location of your Dockerfile within
+                                    the repository.
+                                  type: string
+                                path:
+                                  description: Path is what docker calls `context`.
+                                    It's the location for the content of your build
+                                    within the repository.
+                                  type: string
+                              required:
+                              - dockerfile
+                              - path
+                              type: object
+                            tag:
+                              description: Tag is what will be used to tag the image
+                                once it's pushed to the container's registry (ecr,
+                                etc.) If no tag is set, it will use the workspace
+                                tag This can be useful if a workspace builds multiple
+                                images and each of the images will be tagged the same
+                                value.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        name:
+                          type: string
+                        services:
+                          description: Network service
+                          items:
+                            properties:
+                              ingress:
+                                type: string
+                              port:
+                                type: integer
+                              protocol:
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          type: array
+                      required:
+                      - environments
+                      - image
+                      - name
+                      - services
+                      type: object
+                    type: array
+                  environments:
+                    description: Defines all the environments that will be needed
+                      for this workspace
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        value:
+                          type: string
+                      required:
+                      - name
+                      - value
+                      type: object
+                    type: array
+                  tag:
+                    description: Default tag for all the images that are build that
+                      don't have a tag specified to them. If no value is set, it will
+                      be created before the builds starts.
+                    type: string
+                required:
+                - branch
+                - environments
+                type: object
+            required:
+            - name
+            - template
             type: object
           status:
             description: ProjectStatus defines the observed state of Project
