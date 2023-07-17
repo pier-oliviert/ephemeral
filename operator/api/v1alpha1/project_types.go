@@ -25,7 +25,14 @@ import (
 
 // ProjectSpec defines the desired state of Project
 type ProjectSpec struct {
-	Name string `json:"name,omitempty"`
+	// Name of the project, this doesn't have any other use beside
+	// defining what this project is.
+	// Can be named anything and doesn't have restriction.
+	Name string `json:"name"`
+
+	// Template to use for workspace that belongs to this project
+	// This template can be modified but won't update existing workspace.
+	Template WorkspaceSpec `json:"template"`
 }
 
 // ProjectStatus defines the observed state of Project
