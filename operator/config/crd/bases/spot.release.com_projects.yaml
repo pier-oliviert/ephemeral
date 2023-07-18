@@ -36,24 +36,13 @@ spec:
             description: ProjectSpec defines the desired state of Project
             properties:
               name:
-                description: Name of the project, this doesn't have any other use
-                  beside defining what this project is. Can be named anything and
-                  doesn't have restriction.
+                description: Name of the project, the Receiver will lookup projects
+                  by name when trying to create a workspace from a pull request.
                 type: string
               template:
                 description: Template to use for workspace that belongs to this project
                   This template can be modified but won't update existing workspace.
                 properties:
-                  branch:
-                    properties:
-                      name:
-                        type: string
-                      url:
-                        type: string
-                    required:
-                    - name
-                    - url
-                    type: object
                   components:
                     description: Collection of all the components that are required
                       for this workspace to deploy.
@@ -182,13 +171,7 @@ spec:
                       - value
                       type: object
                     type: array
-                  tag:
-                    description: Default tag for all the images that are build that
-                      don't have a tag specified to them. If no value is set, it will
-                      be created before the builds starts.
-                    type: string
                 required:
-                - branch
                 - environments
                 type: object
             required:

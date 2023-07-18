@@ -1,12 +1,61 @@
-apiVersion: spot.release.com/v1alpha1
-kind: Receiver
+apiVersion: v1
+kind: Service
 metadata:
   labels:
-    app.kubernetes.io/name: receiver
-    app.kubernetes.io/instance: receiver-sample
-    app.kubernetes.io/part-of: spot
-    app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: spot
-  name: receiver-sample
+  name: receiver
+  namespace: spot-system
 spec:
-  # TODO(user): Add fields here
+  selector:
+    spot.release.com/pods: receiver
+  ports:
+    - protocol: TCP
+      port: 3333
+      targetPort: 3333
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/created-by: spot
+  name: receiver
+  namespace: spot-system
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: "/"
+        pathType: Prefix
+        backend:
+          service:
+            name: "receiver"
+            port:
+              number: 3333
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/created-by: spot
+  name: receiver
+  namespace: spot-system
+spec:
+  replicas: 2,
+  selector:
+    matchLabels:
+      spot.release.com/pods: receiver
+  template:
+    metadata:
+      labels:
+        spot.release.com/pods: receiver
+    spec:
+      serviceAccountName: spot-controller-manager
+      containers:
+        - image: receiver:latest
+          imagePullPolicy: PullNever
+          name: receiver
+          ports:
+          - containerPort: 3333
