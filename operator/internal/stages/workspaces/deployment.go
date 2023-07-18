@@ -46,19 +46,26 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 
 		services[component.Name] = &service
 
-		if len(component.Services[0].Ingress) != 0 {
+		// TODO: move domain as a configuration field for a project/workspace
+		domain := "po.ngrok.app"
+
+		for _, serviceSpec := range component.Services {
+			if len(serviceSpec.Ingress) == 0 {
+				continue
+			}
+
 			ingressClassName := "nginx"
 			pathType := networking.PathTypePrefix
 
 			ingress := &networking.Ingress{
 				ObjectMeta: meta.ObjectMeta{
-					Name:      "click-mania",
-					Namespace: workspace.Status.Namespace,
+					GenerateName: fmt.Sprintf("%s-", component.Name),
+					Namespace:    workspace.Status.Namespace,
 				},
 				Spec: networking.IngressSpec{
 					IngressClassName: &ingressClassName,
 					Rules: []networking.IngressRule{{
-						Host: "click-mania.po.ngrok.app",
+						Host: fmt.Sprintf("%s.%s", component.Name, domain),
 						IngressRuleValue: networking.IngressRuleValue{
 							HTTP: &networking.HTTPIngressRuleValue{
 								Paths: []networking.HTTPIngressPath{{
@@ -66,8 +73,8 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 									PathType: &pathType,
 									Backend: networking.IngressBackend{
 										Service: &networking.IngressServiceBackend{
-											Name: services["click-mania"].Name,
-											Port: networking.ServiceBackendPort{Number: services["click-mania"].Spec.Ports[0].Port},
+											Name: component.Name,
+											Port: networking.ServiceBackendPort{Number: services[component.Name].Spec.Ports[0].Port},
 										},
 									},
 								}},
@@ -80,7 +87,6 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 			if err := d.Client.Create(ctx, ingress); err != nil {
 				return err
 			}
-
 		}
 	}
 
