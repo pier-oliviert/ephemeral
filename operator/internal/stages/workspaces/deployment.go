@@ -95,6 +95,10 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 		if err != nil {
 			return err
 		}
+		imageName := component.Image.Name
+		if component.Image.Tag != nil {
+			imageName = fmt.Sprintf("%s:%s", imageName, *component.Image.Tag)
+		}
 
 		pod := core.Pod{
 			ObjectMeta: meta.ObjectMeta{
@@ -109,7 +113,7 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 				Containers: []core.Container{
 					{
 						Name:  component.Name,
-						Image: component.Image.Name,
+						Image: imageName,
 						Ports: []core.ContainerPort{
 							{
 								Name:          component.Services[0].Protocol,

@@ -86,7 +86,7 @@ func (w *Workspace) workspace(project *spot.Project, request *WorkspaceRequest) 
 }
 
 func (w *Workspace) createWorkspace(project *spot.Project, request *WorkspaceRequest) (*spot.Workspace, error) {
-	workspace := spot.Workspace{
+	workspace := &spot.Workspace{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      request.Branch.Name,
 			Namespace: project.Namespace,
@@ -102,10 +102,12 @@ func (w *Workspace) createWorkspace(project *spot.Project, request *WorkspaceReq
 		},
 	}
 
-	for _, component := range workspace.Spec.Components {
+	for i := 0; i < len(workspace.Spec.Components); i++ {
+		component := workspace.Spec.Components[i]
 		if component.Image.Registry != nil {
 			component.Image.Tag = &request.Branch.Ref
 		}
+		workspace.Spec.Components[i] = component
 	}
 
 	workspace.Spec.Tag = &request.Branch.Ref
@@ -114,9 +116,9 @@ func (w *Workspace) createWorkspace(project *spot.Project, request *WorkspaceReq
 		Post().
 		Resource("workspaces").
 		Namespace("spot-system").
-		Body(&workspace).
+		Body(workspace).
 		Do(context.TODO()).
-		Into(&workspace)
+		Into(workspace)
 
-	return &workspace, err
+	return workspace, err
 }

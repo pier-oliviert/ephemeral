@@ -16,7 +16,7 @@ import (
 func HardCodedBuildFromGithub(ctx context.Context) (*spot.BuildImage, error) {
 	payload := os.Getenv("REGISTRY_AUTH")
 	context := os.Getenv("REPOSITORY_URL")
-	registry := os.Getenv("REGISTRY_URL")
+	registry := os.Getenv("IMAGE_URL")
 	imageTag := os.Getenv("IMAGE_TAG")
 	err := os.Mkdir(fmt.Sprint(os.Getenv("HOME"), "/.docker"), 0777)
 	if err != nil {
@@ -32,6 +32,7 @@ func HardCodedBuildFromGithub(ctx context.Context) (*spot.BuildImage, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	cmd := exec.CommandContext(ctx, "buildctl", "build", "--frontend", "dockerfile.v0")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

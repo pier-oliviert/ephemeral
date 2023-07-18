@@ -3,7 +3,7 @@ module github.com/releasehub-com/spot/builder
 go 1.19
 
 require (
-	github.com/releasehub-com/spot/operator v0.0.0-20230710150040-5cead49d29a4
+	github.com/releasehub-com/spot/operator v0.0.0-20230718153857-d78f5c1f6d12
 	k8s.io/client-go v0.27.3
 )
 

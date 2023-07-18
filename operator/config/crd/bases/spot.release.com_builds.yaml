@@ -38,10 +38,6 @@ spec:
             type: object
           spec:
             properties:
-              default_image_tag:
-                description: Defaults to this tag if the Image doesn't have one set.
-                  It is usually set by the workspace
-                type: string
               image:
                 description: Information about the image that's going to be built
                   For an image to be succesfully built, it needs to have a RegistrySpec
@@ -97,8 +93,6 @@ spec:
                 description: RepositoryURL is the URL of the repository it plans to
                   build
                 type: string
-            required:
-            - default_image_tag
             type: object
           status:
             description: BuildStatus defines the observed state of Build
