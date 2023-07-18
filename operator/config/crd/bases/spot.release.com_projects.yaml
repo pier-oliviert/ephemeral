@@ -35,10 +35,6 @@ spec:
           spec:
             description: ProjectSpec defines the desired state of Project
             properties:
-              name:
-                description: Name of the project, the Receiver will lookup projects
-                  by name when trying to create a workspace from a pull request.
-                type: string
               template:
                 description: Template to use for workspace that belongs to this project
                   This template can be modified but won't update existing workspace.
@@ -101,7 +97,6 @@ spec:
                                 url:
                                   type: string
                               required:
-                              - type
                               - url
                               type: object
                             repository_context:
@@ -129,7 +124,7 @@ spec:
                                 etc.) If no tag is set, it will use the workspace
                                 tag This can be useful if a workspace builds multiple
                                 images and each of the images will be tagged the same
-                                value.
+                                value. Defaults to latest
                               type: string
                           required:
                           - name
@@ -151,7 +146,6 @@ spec:
                             type: object
                           type: array
                       required:
-                      - environments
                       - image
                       - name
                       - services
@@ -175,7 +169,6 @@ spec:
                 - environments
                 type: object
             required:
-            - name
             - template
             type: object
           status:

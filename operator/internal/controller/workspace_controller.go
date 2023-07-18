@@ -79,6 +79,13 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	// TODO: Admission hook should force a Tag.
+	if workspace.Spec.Tag == nil {
+		fmt.Println(workspace.Spec.Tag)
+		harcoded := "hardcoded"
+		workspace.Spec.Tag = &harcoded
+	}
+
 	switch workspace.Status.Stage {
 
 	// The Workspace was just created and nothing has happened to it

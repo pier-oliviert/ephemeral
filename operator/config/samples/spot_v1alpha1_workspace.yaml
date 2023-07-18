@@ -36,6 +36,7 @@ spec:
           value: "mysql"
       image:
         name: "pierolivierrh/click-mania"
+        tag: "latest"
         registry:
           type: "docker"
           url: "pierolivierrh/click-mania"

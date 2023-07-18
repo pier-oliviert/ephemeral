@@ -44,9 +44,8 @@ func Build(ctx context.Context, workspace *spot.Workspace, c client.Client) erro
 				},
 			},
 			Spec: spot.BuildSpec{
-				Image:           component.Image,
-				DefaultImageTag: *workspace.Spec.Tag,
-				RepositoryURL:   workspace.Spec.Branch.URL,
+				Image:         component.Image,
+				RepositoryURL: workspace.Spec.Branch.URL,
 			},
 		}
 

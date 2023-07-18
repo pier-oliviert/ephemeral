@@ -289,7 +289,7 @@ func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*cor
 
 func (r *BuildReconciler) tagFor(build *spot.Build) string {
 	if build.Spec.Image.Tag == nil {
-		return build.Spec.DefaultImageTag
+		return "latest"
 	}
 
 	return *build.Spec.Image.Tag

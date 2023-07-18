@@ -18,6 +18,7 @@ type ImageSpec struct {
 	// If no tag is set, it will use the workspace tag
 	// This can be useful if a workspace builds multiple images
 	// and each of the images will be tagged the same value.
+	// Defaults to latest
 	Tag *string `json:"tag,omitempty"`
 
 	// Name of the image. If the image is not an official

@@ -10,24 +10,50 @@ metadata:
   name: click-mania
   namespace: spot-system
 spec:
-  branch:
-    name: "main"
-    url: "github.com/my-org/my-repo"
-  components:
-    - name: "click-mania"
-      services:
-        - name: "https"
-          port: 3000
-          ingress: "app" #app.yolo.com
-      image:
-        name: "my-image" #u
-        tag: "main"
-        registry:
-          url: "docker.io/my-org/my-image"
-    - name: "mysql"
-      services:
-        - name: "tcp"
-          port: 3036
-      image:
-        name: "mysql"
-        tag: "8.0.33"
+  template:
+    components:
+      - name: "click-mania"
+        command: 
+          - "wait-for-it"
+          - "mysql:3306"
+          - "--"
+          - "/srv/aurora-test"
+          - "start"
+        services:
+          - port: 3000
+            ingress: "app" #app.yolo.com
+        environments:
+          - name: "MYSQL_USER"
+            as: "DB_USER"
+          - name: "MYSQL_PASSWORD"
+            as: "DB_PASSWORD"
+          - name: "MYSQL_DATABASE"
+            as: "DB_NAME"
+          - name: "DB_HOST"
+            value: "mysql"
+        image:
+          name: "pierolivierrh/click-mania"
+          registry:
+            type: "docker"
+            url: "pierolivierrh/click-mania"
+      - name: "mysql"
+        services:
+          - protocol: tcp
+            port: 3306
+        environments:
+          - name: "MYSQL_USER"
+          - name: "MYSQL_DATABASE"
+          - name: "MYSQL_PASSWORD"
+          - name: "MYSQL_ROOT_PASSWORD"
+        image:
+          name: "mysql"
+          tag: "8.0.33"
+    environments:
+      - name: "MYSQL_USER"
+        value: "big"
+      - name: "MYSQL_DATABASE"
+        value: "click-me"
+      - name: "MYSQL_PASSWORD"
+        value: "lebowski"
+      - name: "MYSQL_ROOT_PASSWORD"
+        value: "Yeah, well, that is just, like, your opinion, man."

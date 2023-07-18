@@ -106,7 +106,6 @@ spec:
                             url:
                               type: string
                           required:
-                          - type
                           - url
                           type: object
                         repository_context:
@@ -133,7 +132,8 @@ spec:
                             it's pushed to the container's registry (ecr, etc.) If
                             no tag is set, it will use the workspace tag This can
                             be useful if a workspace builds multiple images and each
-                            of the images will be tagged the same value.
+                            of the images will be tagged the same value. Defaults
+                            to latest
                           type: string
                       required:
                       - name
@@ -155,7 +155,6 @@ spec:
                         type: object
                       type: array
                   required:
-                  - environments
                   - image
                   - name
                   - services

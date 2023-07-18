@@ -65,7 +65,7 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 				Spec: networking.IngressSpec{
 					IngressClassName: &ingressClassName,
 					Rules: []networking.IngressRule{{
-						Host: fmt.Sprintf("%s.%s", component.Name, domain),
+						Host: fmt.Sprintf("%s.%s", serviceSpec.Ingress, domain),
 						IngressRuleValue: networking.IngressRuleValue{
 							HTTP: &networking.HTTPIngressRuleValue{
 								Paths: []networking.HTTPIngressPath{{
@@ -98,8 +98,8 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 
 		pod := core.Pod{
 			ObjectMeta: meta.ObjectMeta{
-				GenerateName: fmt.Sprintf("%s-", component.Name),
-				Namespace:    workspace.Status.Namespace,
+				Name:      component.Name,
+				Namespace: workspace.Status.Namespace,
 				Labels: map[string]string{
 					"app.kubernetes.io/name": component.Name,
 				},

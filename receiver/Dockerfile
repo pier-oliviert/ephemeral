@@ -5,6 +5,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN CGOENABLED=0 GOOS=linux GOARCH=amd64 go mod download
 
+COPY / ../operator
 # Build can't be optimized, copy the whole thing
 COPY . .
 RUN CGOENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/receiver ./cmd

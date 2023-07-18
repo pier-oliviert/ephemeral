@@ -25,7 +25,8 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - http:
+  - host: "receiver.po.ngrok.app"
+    http:
       paths:
       - path: "/"
         pathType: Prefix
@@ -43,7 +44,7 @@ metadata:
   name: receiver
   namespace: spot-system
 spec:
-  replicas: 2,
+  replicas: 1
   selector:
     matchLabels:
       spot.release.com/pods: receiver
@@ -55,7 +56,7 @@ spec:
       serviceAccountName: spot-controller-manager
       containers:
         - image: receiver:latest
-          imagePullPolicy: PullNever
+          imagePullPolicy: Never
           name: receiver
           ports:
           - containerPort: 3333
