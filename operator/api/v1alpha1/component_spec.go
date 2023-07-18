@@ -16,7 +16,7 @@ type ComponentSpec struct {
 	Command []string `json:"command,omitempty"`
 
 	// Links a component to an EnvironmentSpec entry.
-	Environments []ComponentEnvironmentSpec `json:"environments"`
+	Environments []ComponentEnvironmentSpec `json:"environments,omitempty"`
 
 	// Network service
 	Services []ServiceSpec `json:"services"`

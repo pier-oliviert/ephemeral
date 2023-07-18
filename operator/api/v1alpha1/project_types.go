@@ -22,10 +22,6 @@ import (
 
 // ProjectSpec defines the desired state of Project
 type ProjectSpec struct {
-	// Name of the project, the Receiver will lookup projects by name
-	// when trying to create a workspace from a pull request.
-	Name string `json:"name"`
-
 	// Template to use for workspace that belongs to this project
 	// This template can be modified but won't update existing workspace.
 	Template ProjectTemplateSpec `json:"template"`
