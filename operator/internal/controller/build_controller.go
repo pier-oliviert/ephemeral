@@ -241,10 +241,6 @@ func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*cor
 						Value: build.Spec.Image.Repository.URL,
 					},
 					{
-						Name:  "REPOSITORY_BRANCH",
-						Value: build.Spec.Image.Repository.Branch,
-					},
-					{
 						Name:  "REPOSITORY_REF",
 						Value: build.Spec.Image.Repository.Ref,
 					},

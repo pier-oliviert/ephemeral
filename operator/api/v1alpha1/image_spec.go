@@ -37,10 +37,9 @@ type RepositorySpec struct {
 	// URL of the repository
 	URL string `json:"url"`
 
-	// Branch of the repository
-	Branch string `json:"branch"`
+	// Hash of the commit to build (usually a sha)
+	Hash string `json:"hash"`
 
-	// Ref represent the hash of the commit
-	// that should be built as an image
+	// Reference is usually a branch.
 	Ref string `json:"ref"`
 }
