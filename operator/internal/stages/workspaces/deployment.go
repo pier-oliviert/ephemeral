@@ -112,8 +112,9 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 				RestartPolicy: core.RestartPolicyNever,
 				Containers: []core.Container{
 					{
-						Name:  component.Name,
-						Image: imageName,
+						Name:            component.Name,
+						Image:           imageName,
+						ImagePullPolicy: core.PullAlways,
 						Ports: []core.ContainerPort{
 							{
 								Name:          component.Services[0].Protocol,

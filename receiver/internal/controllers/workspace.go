@@ -18,7 +18,8 @@ type Workspace struct {
 }
 
 type WorkspaceRequest struct {
-	Branch BranchRequest `json:"branch"`
+	Project string        `json:"project"`
+	Branch  BranchRequest `json:"branch"`
 }
 
 type BranchRequest struct {
@@ -43,7 +44,7 @@ func (w *Workspace) ServeHTTP(response http.ResponseWriter, request *http.Reques
 
 	fmt.Println(workspaceRequest)
 
-	r := w.Client.Get().Resource("projects").Namespace("spot-system").Name("click-mania")
+	r := w.Client.Get().Resource("projects").Namespace("spot-system").Name(workspaceRequest.Project)
 	fmt.Println("Path: ", r.URL())
 
 	result := r.Do(context.TODO())
@@ -72,7 +73,7 @@ func (w *Workspace) ServeHTTP(response http.ResponseWriter, request *http.Reques
 func (w *Workspace) workspace(project *spot.Project, request *WorkspaceRequest) (*spot.Workspace, error) {
 	var workspaces spot.Workspace
 
-	result := w.Client.Get().Resource("workspaces").Namespace("spot-system").Name(request.Branch.Name).Do(context.Background())
+	result := w.Client.Get().Resource("workspaces").Namespace("spot-system").Name(request.Branch.Ref).Do(context.Background())
 	if err := result.Error(); err != nil {
 		if errors.IsNotFound(err) {
 			fmt.Println("Not Found, creating a new workspace: ")
@@ -92,10 +93,6 @@ func (w *Workspace) createWorkspace(project *spot.Project, request *WorkspaceReq
 			Namespace: project.Namespace,
 		},
 		Spec: spot.WorkspaceSpec{
-			Branch: spot.BranchSpec{
-				Name: request.Branch.Name,
-				URL:  request.Branch.URL,
-			},
 			Components:   project.Spec.Template.Components,
 			Environments: project.Spec.Template.Environments,
 			Tag:          &request.Branch.Ref, // TODO: Need to figure this out, probably wants it in the BranchSpec.
@@ -104,7 +101,8 @@ func (w *Workspace) createWorkspace(project *spot.Project, request *WorkspaceReq
 
 	for i := 0; i < len(workspace.Spec.Components); i++ {
 		component := workspace.Spec.Components[i]
-		if component.Image.Registry != nil {
+		if component.Image.Repository != nil {
+			component.Image.Repository.Ref = request.Branch.Ref
 			component.Image.Tag = &request.Branch.Ref
 		}
 		workspace.Spec.Components[i] = component

@@ -60,8 +60,8 @@ github.com/prometheus/client_golang v1.15.1 h1:8tXpTmJbyH5lydzFPoxSIJ0J46jdh3tyl
 github.com/prometheus/client_model v0.4.0 h1:5lQXD3cAg1OXBf4Wq03gTrXHeaV0TQvGfUooCfx1yqY=
 github.com/prometheus/common v0.42.0 h1:EKsfXEYo4JpWMHH5cg+KOUWeuJSov1Id8zGR8eeI1YM=
 github.com/prometheus/procfs v0.9.0 h1:wzCHvIvM5SxWqYvwgVL7yJY8Lz3PKn49KQtpgMYJfhI=
-github.com/releasehub-com/spot/operator v0.0.0-20230718153857-d78f5c1f6d12 h1:OsbipcvtxPGK+CdT7jyXU4/bDJviKt0i6wxFqoHMNqc=
-github.com/releasehub-com/spot/operator v0.0.0-20230718153857-d78f5c1f6d12/go.mod h1:Ma+3SQhJ3JSdHbFbbQmRs3K4FbnsoyUSzrQ1gaFb22o=
+github.com/releasehub-com/spot/operator v0.0.0-20230719120654-4cbc4a8c0c17 h1:2xQl2b4jWTNIIQXVfsOkeSKnzg+VFxJmgwCOrsxThS4=
+github.com/releasehub-com/spot/operator v0.0.0-20230719120654-4cbc4a8c0c17/go.mod h1:Ma+3SQhJ3JSdHbFbbQmRs3K4FbnsoyUSzrQ1gaFb22o=
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
 github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=

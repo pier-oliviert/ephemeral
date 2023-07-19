@@ -36,9 +36,9 @@ spec:
           repository:
             dockerfile: Dockerfile
             context: "."
-            url: "https://github.com/releasehub-com/click-mania-test"
-            branch: "main"
-            ref: ""
+            url: github.com/releasehub-com/click-mania-test
+            ref: "main"
+            hash: ""
           registry:
             type: "docker"
             url: "pierolivierrh/click-mania"

@@ -3,7 +3,7 @@ module github.com/releasehub-com/spot/receiver
 go 1.19
 
 require (
-	github.com/releasehub-com/spot/operator v0.0.0-20230718153857-d78f5c1f6d12
+	github.com/releasehub-com/spot/operator v0.0.0-20230719120654-4cbc4a8c0c17
 	k8s.io/apimachinery v0.27.3
 	k8s.io/client-go v0.27.3
 )

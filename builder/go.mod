@@ -3,7 +3,7 @@ module github.com/releasehub-com/spot/builder
 go 1.19
 
 require (
-	github.com/releasehub-com/spot/operator v0.0.0-20230718153857-d78f5c1f6d12
+	github.com/releasehub-com/spot/operator v0.0.0-20230719112041-9efa4dda5168
 	k8s.io/client-go v0.27.3
 )
 
@@ -30,9 +30,9 @@ require (
 	k8s.io/api v0.27.3 // indirect
 	k8s.io/apimachinery v0.27.3 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
-	k8s.io/utils v0.0.0-20230505201702-9f6742963106 // indirect
+	k8s.io/utils v0.0.0-20230711102312-30195339c3c7 // indirect
 	sigs.k8s.io/controller-runtime v0.15.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.3.0 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
