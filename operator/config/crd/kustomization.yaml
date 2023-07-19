@@ -2,10 +2,7 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/spot.release.com_environments.yaml
 - bases/spot.release.com_workspaces.yaml
-- bases/spot.release.com_versioncontrols.yaml
-- bases/spot.release.com_receivers.yaml
 - bases/spot.release.com_projects.yaml
 - bases/spot.release.com_builds.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
