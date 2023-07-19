@@ -105,9 +105,6 @@ spec:
                                 repository. The image will be build from source if
                                 the `Repository` is set.
                               properties:
-                                branch:
-                                  description: Branch of the repository
-                                  type: string
                                 context:
                                   description: It's the location for the content of
                                     your build within the repository.
@@ -116,17 +113,20 @@ spec:
                                   description: Location of your Dockerfile within
                                     the repository.
                                   type: string
+                                hash:
+                                  description: Hash of the commit to build (usually
+                                    a sha)
+                                  type: string
                                 ref:
-                                  description: Ref represent the hash of the commit
-                                    that should be built as an image
+                                  description: Reference is usually a branch.
                                   type: string
                                 url:
                                   description: URL of the repository
                                   type: string
                               required:
-                              - branch
                               - context
                               - dockerfile
+                              - hash
                               - ref
                               - url
                               type: object
