@@ -19,6 +19,7 @@ type Workspace struct {
 
 type WorkspaceRequest struct {
 	Project string        `json:"project"`
+	State   string        `json:"state"`
 	Branch  BranchRequest `json:"branch"`
 }
 
@@ -59,34 +60,42 @@ func (w *Workspace) ServeHTTP(response http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	fmt.Printf("Project: %+v\n", project)
-
-	workspace, err := w.workspace(&project, &workspaceRequest)
+	err := w.workspace(&project, &workspaceRequest)
 
 	if err != nil {
 		fmt.Println("Error trying to get the list of workspaces: ", err)
 	}
-
-	fmt.Printf("Workspaces: %+v\n", workspace)
 }
 
-func (w *Workspace) workspace(project *spot.Project, request *WorkspaceRequest) (*spot.Workspace, error) {
-	var workspaces spot.Workspace
+func (w *Workspace) workspace(project *spot.Project, request *WorkspaceRequest) error {
+	if request.State == "open" {
+		var workspaces spot.Workspace
 
-	result := w.Client.Get().Resource("workspaces").Namespace("spot-system").Name(request.Branch.Ref).Do(context.Background())
-	if err := result.Error(); err != nil {
-		if errors.IsNotFound(err) {
-			fmt.Println("Not Found, creating a new workspace: ")
-			return w.createWorkspace(project, request)
+		result := w.Client.Get().Resource("workspaces").Namespace("spot-system").Name(request.Branch.Ref).Do(context.Background())
+		if err := result.Error(); err != nil {
+			if errors.IsNotFound(err) {
+				fmt.Println("Not Found, creating a new workspace: ")
+				return w.createWorkspace(project, request)
+			}
+			return err
 		}
-		return nil, err
+
+		err := result.Into(&workspaces)
+		return err
 	}
 
-	err := result.Into(&workspaces)
-	return &workspaces, err
+	result := w.Client.Delete().Resource("workspaces").Namespace("spot-system").Name(request.Branch.Ref).Do(context.Background())
+	if err := result.Error(); err != nil {
+		if errors.IsNotFound(err) {
+			fmt.Println("Not Found, nothing to do.")
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
-func (w *Workspace) createWorkspace(project *spot.Project, request *WorkspaceRequest) (*spot.Workspace, error) {
+func (w *Workspace) createWorkspace(project *spot.Project, request *WorkspaceRequest) error {
 	workspace := &spot.Workspace{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      request.Branch.Name,
@@ -118,5 +127,5 @@ func (w *Workspace) createWorkspace(project *spot.Project, request *WorkspaceReq
 		Do(context.TODO()).
 		Into(workspace)
 
-	return workspace, err
+	return err
 }
