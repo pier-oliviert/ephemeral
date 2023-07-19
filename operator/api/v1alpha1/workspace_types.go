@@ -35,8 +35,6 @@ const (
 )
 
 type WorkspaceSpec struct {
-	Branch BranchSpec `json:"branch"`
-
 	// Collection of all the components that are required for this
 	// workspace to deploy.
 	Components []ComponentSpec `json:"components,omitempty"`
@@ -49,11 +47,6 @@ type WorkspaceSpec struct {
 	// it will be created before the builds starts.
 	// +optional
 	Tag *string `json:"tag,omitempty"`
-}
-
-type BranchSpec struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
 }
 
 type ServiceSpec struct {

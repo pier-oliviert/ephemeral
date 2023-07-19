@@ -33,6 +33,12 @@ spec:
             value: "mysql"
         image:
           name: "pierolivierrh/click-mania"
+          repository:
+            dockerfile: Dockerfile
+            context: "."
+            url: "https://github.com/releasehub-com/click-mania-test"
+            branch: "main"
+            ref: ""
           registry:
             type: "docker"
             url: "pierolivierrh/click-mania"

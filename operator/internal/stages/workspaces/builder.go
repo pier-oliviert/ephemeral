@@ -25,7 +25,7 @@ func Build(ctx context.Context, workspace *spot.Workspace, c client.Client) erro
 
 	var builds []*spot.Build
 	for _, component := range workspace.Spec.Components {
-		if component.Image.Registry == nil {
+		if component.Image.Repository == nil {
 			// This image is not going to be built, let's exclude it from the build slice
 			continue
 		}
@@ -44,8 +44,7 @@ func Build(ctx context.Context, workspace *spot.Workspace, c client.Client) erro
 				},
 			},
 			Spec: spot.BuildSpec{
-				Image:         component.Image,
-				RepositoryURL: workspace.Spec.Branch.URL,
+				Image: component.Image,
 			},
 		}
 

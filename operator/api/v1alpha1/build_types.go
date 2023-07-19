@@ -21,9 +21,6 @@ import (
 )
 
 type BuildSpec struct {
-	// RepositoryURL is the URL of the repository it plans to build
-	RepositoryURL string `json:"repo_url,omitempty"`
-
 	// Information about the image that's going to be built
 	// For an image to be succesfully built, it needs to have
 	// a RegistrySpec associated with it.

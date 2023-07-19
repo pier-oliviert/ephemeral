@@ -1,11 +1,11 @@
 package v1alpha1
 
 type ImageSpec struct {
-	// RepositoryContext information is passed down to buildkit
+	// Repository information is passed down to buildkit
 	// as instruction on how to proceed with the repository.
-	// The image will be build from source if the `RepositoryContext` is set.
+	// The image will be build from source if the `Repository` is set.
 	//+optional
-	RepositoryContext *RepositoryContextSpec `json:"repository_context,omitempty"`
+	Repository *RepositorySpec `json:"repository,omitempty"`
 
 	// Registry is where all the information for the container registry
 	// lives. It needs to be properly configured for the build to
@@ -27,11 +27,20 @@ type ImageSpec struct {
 	Name string `json:"name"`
 }
 
-type RepositoryContextSpec struct {
+type RepositorySpec struct {
 	// Location of your Dockerfile within the repository.
 	Dockerfile string `json:"dockerfile"`
 
-	// Path is what docker calls `context`. It's the location
-	// for the content of your build within the repository.
-	Path string `json:"path"`
+	// It's the location for the content of your build within the repository.
+	Context string `json:"context"`
+
+	// URL of the repository
+	URL string `json:"url"`
+
+	// Branch of the repository
+	Branch string `json:"branch"`
+
+	// Ref represent the hash of the commit
+	// that should be built as an image
+	Ref string `json:"ref"`
 }
