@@ -42,6 +42,15 @@ make undeploy
 ```
 
 ## Contributing
+
+### Admission webhook certificates
+If the operator runs outside the cluster (`make run`), you'll need to generate a certificate for the webhook.
+
+In the temporary folder that k8s created for you, generate the certificates:
+```bash
+openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out tls.crt -keyout tls.key -addext "subjectAltName=DNS:spot-webhook-service.spot-system.svc,DNS:spot-webhook-service.spot-system.svc.cluster.local"
+```
+
 // TODO(user): Add detailed information on how you would like others to contribute to this project
 
 ### How it works
