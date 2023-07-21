@@ -113,10 +113,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// if err = (&spotv1alpha1.Workspace{}).SetupWebhookWithManager(mgr); err != nil {
-	// 	setupLog.Error(err, "unable to create webhook", "webhook", "Workspace")
-	// 	os.Exit(1)
-	// }
+	if err = (&spotv1alpha1.Workspace{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Workspace")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
