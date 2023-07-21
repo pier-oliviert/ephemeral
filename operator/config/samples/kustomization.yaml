@@ -1,9 +1,6 @@
 ## Append samples of your project ##
 resources:
-- spot_v1alpha1_environment.yaml
 - spot_v1alpha1_workspace.yaml
-- spot_v1alpha1_versioncontrol.yaml
-- spot_v1alpha1_testingclusterkind.yaml
 - spot_v1alpha1_receiver.yaml
 - spot_v1alpha1_project.yaml
 - spot_v1alpha1_build.yaml

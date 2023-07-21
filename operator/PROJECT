@@ -14,15 +14,6 @@ resources:
   controller: true
   domain: release.com
   group: spot
-  kind: Environment
-  path: github.com/releasehub-com/spot/api/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: release.com
-  group: spot
   kind: Workspace
   path: github.com/releasehub-com/spot/api/v1alpha1
   version: v1alpha1
@@ -30,14 +21,6 @@ resources:
     defaulting: true
     validation: true
     webhookVersion: v1
-- api:
-    crdVersion: v1
-  controller: true
-  domain: release.com
-  group: spot
-  kind: VersionControl
-  path: github.com/releasehub-com/spot/api/v1alpha1
-  version: v1alpha1
 - api:
     crdVersion: v1
     namespaced: true
