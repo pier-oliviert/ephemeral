@@ -198,7 +198,6 @@ func (r *BuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*core.Pod, error) {
 	privileged := true
-	hostPathType := core.HostPathDirectoryOrCreate
 	pod := &core.Pod{
 		ObjectMeta: meta.ObjectMeta{
 			Namespace:    build.Namespace,
@@ -266,21 +265,6 @@ func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*cor
 				},
 				SecurityContext: &core.SecurityContext{
 					Privileged: &privileged,
-				},
-				VolumeMounts: []core.VolumeMount{
-					{
-						Name:      "cache",
-						MountPath: "/var/lib/buildkit",
-					},
-				},
-			}},
-			Volumes: []core.Volume{{
-				Name: "cache",
-				VolumeSource: core.VolumeSource{
-					HostPath: &core.HostPathVolumeSource{
-						Path: "/var/lib/buildkit",
-						Type: &hostPathType,
-					},
 				},
 			}},
 		},
