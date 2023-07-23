@@ -49,6 +49,7 @@ type BuildReconciler struct {
 //+kubebuilder:rbac:groups=spot.release.com,resources=builds,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=spot.release.com,resources=builds/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=spot.release.com,resources=builds/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;watch;list;create;delete
 
 func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -220,7 +221,7 @@ func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*cor
 			ServiceAccountName: "spot-controller-manager", // TODO: Most likely to change spot-system/default to support the RBAC settings we need instead
 			Containers: []core.Container{{
 				Name:            "buildkit",
-				Image:           "builder:latest", // TODO: Need to replace this with real image
+				Image:           "builder:dev", // TODO: Need to replace this with real image
 				ImagePullPolicy: core.PullNever,
 				Resources: core.ResourceRequirements{
 					Requests: core.ResourceList{
@@ -284,6 +285,7 @@ func (r *BuildReconciler) tagFor(build *spot.Build) string {
 }
 
 func (r *BuildReconciler) markBuildHasErrored(ctx context.Context, build *spot.Build, err error) error {
+	r.EventRecorder.Event(build, "Warning", string(spot.BuildStageError), err.Error())
 	logger := log.FromContext(ctx)
 	logger.Error(err, "Error happened with the build")
 	build.Status.Stage = spot.BuildStageError

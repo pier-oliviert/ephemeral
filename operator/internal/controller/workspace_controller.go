@@ -43,6 +43,9 @@ type WorkspaceReconciler struct {
 //+kubebuilder:rbac:groups=spot.release.com,resources=workspaces/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=spot.release.com,resources=workspaces/finalizers,verbs=update
 //+kubebuilder:rbac:groups=spot.release.com,resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;watch;list;create;delete
+//+kubebuilder:rbac:groups="",resources=services,verbs=get;watch;list;create;delete
+//+kubebuilder:rbac:groups="networking.k8s.io",resources=ingresses,verbs=get;watch;list;create;delete
 
 func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -123,7 +126,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		r.EventRecorder.Event(&workspace, "Normal", "Deploying", "Deploying services and updating routes")
 		deployment := stages.Deployment{Client: r.Client}
 		if err := deployment.Start(ctx, &workspace); err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
 		}
 	}
 

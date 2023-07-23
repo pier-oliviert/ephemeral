@@ -11,6 +11,15 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: workspace-editor-role
 rules:
+- apiGroups: 
+  - ""
+  resources:
+    - namespace
+  verbs:
+    - create
+    - delete
+    - get
+    - list
 - apiGroups:
   - spot.release.com
   resources:

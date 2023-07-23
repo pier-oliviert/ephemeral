@@ -56,7 +56,6 @@ spec:
       serviceAccountName: spot-controller-manager
       containers:
         - image: receiver:latest
-          imagePullPolicy: Never
           name: receiver
           ports:
           - containerPort: 3333

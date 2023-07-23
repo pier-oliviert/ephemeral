@@ -86,7 +86,6 @@ spec:
                     required:
                     - context
                     - dockerfile
-                    - hash
                     - ref
                     - url
                     type: object
