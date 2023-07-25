@@ -19,10 +19,6 @@ func Build(ctx context.Context, workspace *spot.Workspace, c client.Client) erro
 		return errors.New("unexpected builds present for this workspace")
 	}
 
-	if workspace.Spec.Tag == nil || len(*workspace.Spec.Tag) == 0 {
-		return errors.New("Workspace.Spec.Tag is not set")
-	}
-
 	var builds []*spot.Build
 	for _, component := range workspace.Spec.Components {
 		if component.Image.Repository == nil {

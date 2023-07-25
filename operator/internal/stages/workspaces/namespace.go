@@ -17,7 +17,7 @@ func AssignNamespace(ctx context.Context, workspace *spot.Workspace, c client.Cl
 	if len(workspace.Status.Namespace) == 0 {
 		namespace := core.Namespace{
 			ObjectMeta: meta.ObjectMeta{
-				GenerateName: fmt.Sprintf("workspace-%s", *workspace.Spec.Tag),
+				GenerateName: fmt.Sprintf("workspace-%s", workspace.Spec.Tag),
 			},
 		}
 

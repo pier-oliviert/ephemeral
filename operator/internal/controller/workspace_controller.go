@@ -25,7 +25,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	spot "github.com/releasehub-com/spot/operator/api/v1alpha1"
@@ -69,24 +68,6 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
 		}
 		return ctrl.Result{}, nil
-	}
-
-	// TODO: Move this in admission webhook, this cannot stay here
-	// because it causes a racing conditions as K8s doesn't support
-	// updating spec & sub-resource in the same reconciler loop
-	if !controllerutil.ContainsFinalizer(&workspace, stages.Finalizer) {
-		controllerutil.AddFinalizer(&workspace, stages.Finalizer)
-		if err := r.Client.Update(ctx, &workspace); err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, nil
-	}
-
-	// TODO: Admission hook should force a Tag.
-	if workspace.Spec.Tag == nil {
-		fmt.Println(workspace.Spec.Tag)
-		harcoded := "hardcoded"
-		workspace.Spec.Tag = &harcoded
 	}
 
 	switch workspace.Status.Stage {

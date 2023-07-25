@@ -17,7 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"errors"
+
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/rand"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -26,6 +29,10 @@ import (
 
 // log is for logging in this package.
 var workspacelog = logf.Log.WithName("workspace-resource")
+var ErrWorkflowFinalizerMissing = errors.New("workflow requires a finalizer for namespaces")
+var ErrWorkflowTagMissing = errors.New("workflow requires a tag to be set")
+
+const WorkspaceGeneratedTagLength = 5
 
 func (r *Workspace) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -33,44 +40,64 @@ func (r *Workspace) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-
 //+kubebuilder:webhook:path=/mutate-spot-release-com-v1alpha1-workspace,mutating=true,failurePolicy=fail,sideEffects=None,groups=spot.release.com,resources=workspaces,verbs=create;update,versions=v1alpha1,name=mworkspace.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &Workspace{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Workspace) Default() {
-	workspacelog.Info("default", "name", r.Name)
+	if !r.isFinalizerPresent() {
+		r.Finalizers = append(r.Finalizers, WorkspaceFinalizer)
+	}
 
-	// TODO(user): fill in your defaulting logic.
+	if r.Spec.Tag == "" {
+		r.Spec.Tag = rand.String(WorkspaceGeneratedTagLength)
+	}
 }
 
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-spot-release-com-v1alpha1-workspace,mutating=false,failurePolicy=fail,sideEffects=None,groups=spot.release.com,resources=workspaces,verbs=create;update,versions=v1alpha1,name=vworkspace.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Workspace{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Workspace) ValidateCreate() (admission.Warnings, error) {
-	workspacelog.Info("validate create", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object creation.
+	if !r.isFinalizerPresent() {
+		return nil, ErrWorkflowFinalizerMissing
+	}
+
+	if r.Spec.Tag == "" {
+		workspacelog.Info("tag validation failed, might be possible to recover (TODO)", "name", r.Name)
+		return nil, ErrWorkflowTagMissing
+	}
+
 	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Workspace) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	workspacelog.Info("validate update", "name", r.Name)
+	if !r.isFinalizerPresent() {
+		return nil, ErrWorkflowFinalizerMissing
+	}
 
-	// TODO(user): fill in your validation logic upon object update.
+	if r.Spec.Tag == "" {
+		workspacelog.Info("tag validation failed, might be possible to recover (TODO)", "name", r.Name)
+		return nil, ErrWorkflowTagMissing
+	}
+
 	return nil, nil
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete is not needed, just here to satisfy the interface.
+// Change kubebuiler verbs above to "verbs=create;update;delete" if you want to enable deletion validation.
 func (r *Workspace) ValidateDelete() (admission.Warnings, error) {
-	workspacelog.Info("validate delete", "name", r.Name)
-
-	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
+}
+
+func (r *Workspace) isFinalizerPresent() bool {
+	for _, f := range r.Finalizers {
+		if f == WorkspaceFinalizer {
+			return true
+		}
+	}
+	return false
 }

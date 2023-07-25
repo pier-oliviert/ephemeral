@@ -20,6 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const WorkspaceFinalizer = "spot.release.com/namespace"
+
 // +kubebuilder:validation:Enum=Initialized;Building;Deploying;Deployed;Updating;Errored;Terminating;Deleted
 type WorkspaceStage string
 
@@ -46,7 +48,7 @@ type WorkspaceSpec struct {
 	// have a tag specified to them. If no value is set,
 	// it will be created before the builds starts.
 	// +optional
-	Tag *string `json:"tag,omitempty"`
+	Tag string `json:"tag,omitempty"`
 }
 
 type ServiceSpec struct {
