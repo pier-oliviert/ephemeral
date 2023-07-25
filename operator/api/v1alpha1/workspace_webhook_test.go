@@ -7,10 +7,6 @@ import (
 
 var _ = Describe("Workspace", func() {
 
-	// Add Tests for OpenAPI validation (or additonal CRD features) specified in
-	// your API definition.
-	// Avoid adding tests for vanilla CRUD operations because they would
-	// test Kubernetes API server, which isn't the goal here.
 	Context("Finalizers", func() {
 
 		It("should add the default finalizer if it doesn't exist", func() {

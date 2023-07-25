@@ -1,16 +1,13 @@
 # spot [![Go](https://github.com/releasehub-com/spot/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/releasehub-com/spot/actions/workflows/go.yml)
-// TODO(user): Add simple overview of use/purpose
+Managing ephemeral environment in your kubernetes cluster
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
-
-## Getting Started
+## Development
 You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
 **Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
 
 ### Dependencies
 
-```bash
+```sh
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.12.0/cert-manager.yaml
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 ```
@@ -51,20 +48,6 @@ make undeploy
 ## Contributing
 
 ### Admission webhook certificates
-If the operator runs outside the cluster (`make run`), you'll need to generate a certificate for the webhook.
-
-In the temporary folder that k8s created for you, generate the certificates:
-```bash
-openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes -out tls.crt -keyout tls.key -addext "subjectAltName=DNS:spot-webhook-service.spot-system.svc,DNS:spot-webhook-service.spot-system.svc.cluster.local"
-```
-
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-### How it works
-This project aims to follow the Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/).
-
-It uses [Controllers](https://kubernetes.io/docs/concepts/architecture/controller/),
-which provide a reconcile function responsible for synchronizing resources until the desired state is reached on the cluster.
 
 ### Test It Out
 1. Install the CRDs into the cluster:
