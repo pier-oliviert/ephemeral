@@ -1,4 +1,4 @@
-# spot
+# spot [![Go](https://github.com/releasehub-com/spot/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/releasehub-com/spot/actions/workflows/go.yml)
 // TODO(user): Add simple overview of use/purpose
 
 ## Description
