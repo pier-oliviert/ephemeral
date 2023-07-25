@@ -220,6 +220,7 @@ spec:
                   this workspace will live under that namespace
                 type: string
               stage:
+                default: Initialized
                 enum:
                 - Initialized
                 - Building
@@ -230,8 +231,6 @@ spec:
                 - Terminating
                 - Deleted
                 type: string
-            required:
-            - stage
             type: object
         type: object
     served: true

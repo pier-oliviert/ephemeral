@@ -22,7 +22,6 @@ import (
 
 const WorkspaceFinalizer = "spot.release.com/namespace"
 
-// +kubebuilder:validation:Enum=Initialized;Building;Deploying;Deployed;Updating;Errored;Terminating;Deleted
 type WorkspaceStage string
 
 const (
@@ -69,7 +68,9 @@ type WorkspaceStatus struct {
 	// namespace
 	Namespace string `json:"namespace,omitempty"` //omitempty until the code exists
 
-	Stage WorkspaceStage `json:"stage"`
+	// +kubebuilder:validation:Enum=Initialized;Building;Deploying;Deployed;Updating;Errored;Terminating;Deleted
+	// +kubebuilder:default:=Initialized
+	Stage WorkspaceStage `json:"stage,omitempty"`
 
 	// Builds are the unit of work associated for each of the builds
 	// that are required for this workspace to launch. Builds are seeding

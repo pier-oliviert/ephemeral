@@ -58,18 +58,6 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	// TODO: Temporary fix until the Admission hook is working
-	// and the workspace defaults to Initialized.
-	if workspace.Status.Stage == spot.WorkspaceStage("") {
-		workspace.Status.Stage = spot.WorkspaceStageInitialized
-		// Let's force the reconciler to run again instead. Not optimal, but as
-		// mentioned above, this is temporary.
-		if err := r.Status().Update(ctx, &workspace); err != nil {
-			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
-		}
-		return ctrl.Result{}, nil
-	}
-
 	switch workspace.Status.Stage {
 
 	// The Workspace was just created and nothing has happened to it
