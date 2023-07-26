@@ -7,6 +7,14 @@ import (
 
 var _ = Describe("Workspace", func() {
 
+	Context("Tags", func() {
+		It("it needs that starts with an alphabetic character", func() {
+			workspace := &Workspace{}
+			workspace.Default()
+			Expect(workspace.Spec.Tag).To(MatchRegexp("^[a-zA-Z].+"))
+		})
+	})
+
 	Context("Finalizers", func() {
 
 		It("should add the default finalizer if it doesn't exist", func() {

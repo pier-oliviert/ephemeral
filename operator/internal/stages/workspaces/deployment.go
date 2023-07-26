@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	core "k8s.io/api/core/v1"
-	networking "k8s.io/api/networking/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 
 	spot "github.com/releasehub-com/spot/operator/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -18,78 +16,6 @@ type Deployment struct {
 }
 
 func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error {
-	services := make(map[string]*core.Service)
-
-	for _, component := range workspace.Spec.Components {
-		service := core.Service{
-			ObjectMeta: meta.ObjectMeta{
-				Name:      component.Name,
-				Namespace: workspace.Status.Namespace,
-			},
-			Spec: core.ServiceSpec{
-				Selector: map[string]string{
-					"app.kubernetes.io/name": component.Name,
-				},
-				Ports: []core.ServicePort{
-					{
-						Name:       component.Name,
-						Port:       int32(component.Services[0].Port),
-						TargetPort: intstr.FromInt(component.Services[0].Port),
-					},
-				},
-			},
-		}
-
-		if err := d.Client.Create(ctx, &service); err != nil {
-			return err
-		}
-
-		services[component.Name] = &service
-
-		// TODO: move domain as a configuration field for a project/workspace
-		domain := "po.ngrok.app"
-
-		for _, serviceSpec := range component.Services {
-			if len(serviceSpec.Ingress) == 0 {
-				continue
-			}
-
-			ingressClassName := "nginx"
-			pathType := networking.PathTypePrefix
-
-			ingress := &networking.Ingress{
-				ObjectMeta: meta.ObjectMeta{
-					GenerateName: fmt.Sprintf("%s-", component.Name),
-					Namespace:    workspace.Status.Namespace,
-				},
-				Spec: networking.IngressSpec{
-					IngressClassName: &ingressClassName,
-					Rules: []networking.IngressRule{{
-						Host: fmt.Sprintf("%s.%s", serviceSpec.Ingress, domain),
-						IngressRuleValue: networking.IngressRuleValue{
-							HTTP: &networking.HTTPIngressRuleValue{
-								Paths: []networking.HTTPIngressPath{{
-									Path:     "/",
-									PathType: &pathType,
-									Backend: networking.IngressBackend{
-										Service: &networking.IngressServiceBackend{
-											Name: component.Name,
-											Port: networking.ServiceBackendPort{Number: services[component.Name].Spec.Ports[0].Port},
-										},
-									},
-								}},
-							},
-						},
-					}},
-				},
-			}
-
-			if err := d.Client.Create(ctx, ingress); err != nil {
-				return err
-			}
-		}
-	}
-
 	for _, component := range workspace.Spec.Components {
 		envs, err := d.environmentsForComponent(&component, workspace)
 		if err != nil {
@@ -115,19 +41,30 @@ func (d *Deployment) Start(ctx context.Context, workspace *spot.Workspace) error
 						Name:            component.Name,
 						Image:           imageName,
 						ImagePullPolicy: core.PullAlways,
-						Ports: []core.ContainerPort{
-							{
-								Name:          component.Services[0].Protocol,
-								HostPort:      int32(component.Services[0].Port),
-								ContainerPort: int32(component.Services[0].Port),
-							},
-						},
-						Env: envs,
+						Env:             envs,
 					},
 				},
 			},
 		}
 
+		for _, network := range component.Networks {
+			ref := workspace.Status.Services[fmt.Sprintf("%s/%s", component.Name, network.Name)]
+
+			var service core.Service
+			if err := d.Client.Get(ctx, ref.NamespacedName(), &service); err != nil {
+				return err
+			}
+
+			container := pod.Spec.Containers[0]
+			container.Ports = append(container.Ports, core.ContainerPort{
+				Name:          service.Name,
+				HostPort:      int32(service.Spec.Ports[0].Port),
+				ContainerPort: int32(service.Spec.Ports[0].Port),
+			},
+			)
+		}
+
+		// TODO: Need to rework this when sidecar becomes a possibility.
 		if len(component.Command) != 0 {
 			pod.Spec.Containers[0].Command = component.Command
 		}

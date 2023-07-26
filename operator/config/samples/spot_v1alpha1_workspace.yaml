@@ -10,7 +10,7 @@ metadata:
   name: workspace-sample
   namespace: spot-system
 spec:
-  tag: "some-test"
+  host: po.ngrok.app
   components:
     - name: "click-mania"
       command: 
@@ -19,9 +19,11 @@ spec:
         - "--"
         - "/srv/aurora-test"
         - "start"
-      services:
-        - port: 3000
-          ingress: "app" #app.yolo.com
+      networks:
+        - name: app #app.po.ngrok.app
+          port: 3000
+          ingress:
+            path: "/" 
       environments:
         - name: "MYSQL_USER"
           as: "DB_USER"
@@ -44,8 +46,9 @@ spec:
           ref: "main"
           hash: "abc"
     - name: "mysql"
-      services:
-        - protocol: "tcp"
+      networks:
+        - name: "mysql"
+          protocol: "tcp"
           port: 3306
       environments:
         - name: "MYSQL_USER"

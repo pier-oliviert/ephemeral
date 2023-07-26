@@ -140,24 +140,41 @@ spec:
                       type: object
                     name:
                       type: string
-                    services:
+                    networks:
                       description: Network service
                       items:
                         properties:
                           ingress:
+                            description: If the Ingress field is set, an ingress will
+                              be created with the spec
+                            properties:
+                              path:
+                                default: /
+                                description: Path is matched agaisnt the path of the
+                                  incoming request. Path must begin with a '/'.
+                                type: string
+                              path_type:
+                                description: https://pkg.go.dev/k8s.io/api@v0.27.2/networking/v1#HTTPIngressPath
+                                  Defaults to Prefix
+                                type: string
+                            type: object
+                          name:
+                            description: Needs to be unique within a component, will
+                              be used as a prefix for the Ingress's host if the Ingress
+                              is set.
                             type: string
                           port:
                             type: integer
                           protocol:
                             type: string
                         required:
+                        - name
                         - port
                         type: object
                       type: array
                   required:
                   - image
                   - name
-                  - services
                   type: object
                 type: array
               environments:
@@ -174,13 +191,25 @@ spec:
                   - value
                   type: object
                 type: array
+              host:
+                description: "The host that components can use to generate ingresses.
+                  This list assumes that there is a load balancer that can accept
+                  any of these host upstream and can direct them to the ingress controller.
+                  \n The domains here will be prefixed by the Workspace tag and the
+                  components' network name. \n # Example \n tag: \"my-workspace\"
+                  host: release.com components: - name: backend network: name: app
+                  \n For the `backend` component, if an ingress is created, it would
+                  be configured to listen to `app.my-workspace.release.com`"
+                type: string
               tag:
                 description: Default tag for all the images that are build that don't
                   have a tag specified to them. If no value is set, it will be created
-                  before the builds starts.
+                  before the builds starts. A tag needs to be a valid DNS_LABEL and
+                  as such, it needs to start with an alphabetic character (no numbers)
                 type: string
             required:
             - environments
+            - host
             type: object
           status:
             description: WorkspaceStatus defines the observed state of Workspace
@@ -219,17 +248,24 @@ spec:
                   with this workspace. All k8s objects that will need to exist for
                   this workspace will live under that namespace
                 type: string
+              services:
+                additionalProperties:
+                  properties:
+                    name:
+                      description: '`name` is the name of the build. Required'
+                      type: string
+                    namespace:
+                      description: '`namespace` is the namespace of the build. Required'
+                      type: string
+                  required:
+                  - name
+                  - namespace
+                  type: object
+                description: 'Services that are created for this workspace. TODO:
+                  FIXME: Can''t store services like this as it can easily drift. Need
+                  to store a reference instead and should pull the services as needed.'
+                type: object
               stage:
-                default: Initialized
-                enum:
-                - Initialized
-                - Building
-                - Deploying
-                - Deployed
-                - Updating
-                - Errored
-                - Terminating
-                - Deleted
                 type: string
             type: object
         type: object

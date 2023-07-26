@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"errors"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -32,7 +33,7 @@ var workspacelog = logf.Log.WithName("workspace-resource")
 var ErrWorkflowFinalizerMissing = errors.New("workflow requires a finalizer for namespaces")
 var ErrWorkflowTagMissing = errors.New("workflow requires a tag to be set")
 
-const WorkspaceGeneratedTagLength = 5
+const WorkspaceGeneratedTagLength = 6
 
 func (r *Workspace) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -40,7 +41,7 @@ func (r *Workspace) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/mutate-spot-release-com-v1alpha1-workspace,mutating=true,failurePolicy=fail,sideEffects=None,groups=spot.release.com,resources=workspaces,verbs=create;update,versions=v1alpha1,name=mworkspace.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-spot-release-com-v1alpha1-workspace,mutating=true,failurePolicy=fail,sideEffects=None,groups=spot.release.com,resources=workspaces,verbs=create,versions=v1alpha1,name=mworkspace.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &Workspace{}
 
@@ -50,7 +51,9 @@ func (r *Workspace) Default() {
 	}
 
 	if r.Spec.Tag == "" {
-		r.Spec.Tag = rand.String(WorkspaceGeneratedTagLength)
+		// Tags need to start with an alphabetic character to be a valid DNS_LABEL
+		// so the generator is prefixed with a 'w' for workspace.
+		r.Spec.Tag = fmt.Sprintf("w%s", rand.String(WorkspaceGeneratedTagLength-1))
 	}
 }
 
@@ -60,7 +63,6 @@ var _ webhook.Validator = &Workspace{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Workspace) ValidateCreate() (admission.Warnings, error) {
-
 	if !r.isFinalizerPresent() {
 		return nil, ErrWorkflowFinalizerMissing
 	}
@@ -75,6 +77,11 @@ func (r *Workspace) ValidateCreate() (admission.Warnings, error) {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Workspace) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	// Workspace is about to be deleted, skip validation.
+	if r.DeletionTimestamp != nil {
+		return nil, nil
+	}
+
 	if !r.isFinalizerPresent() {
 		return nil, ErrWorkflowFinalizerMissing
 	}

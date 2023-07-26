@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	core "k8s.io/api/core/v1"
+	networking "k8s.io/api/networking/v1"
 )
 
 var ErrComponentEnvSourceFound = errors.New("could not find a value for the specified environment name")
@@ -19,7 +20,7 @@ type ComponentSpec struct {
 	Environments []ComponentEnvironmentSpec `json:"environments,omitempty"`
 
 	// Network service
-	Services []ServiceSpec `json:"services"`
+	Networks []ComponentNetworkSpec `json:"networks,omitempty"`
 
 	// Defines how the image is built for this component
 	// The workspace will aggregate all the images at build time and
@@ -56,4 +57,29 @@ type ComponentEnvironmentSpec struct {
 
 	// Value generally  is going to be generated from the Workspace's `EnvironmentSpec`
 	Value *string `json:"value,omitempty"`
+}
+
+type ComponentNetworkSpec struct {
+	// If the Ingress field is set, an ingress will be created with the spec
+	// +optional
+	Ingress *ComponentIngressSpec `json:"ingress,omitempty"`
+
+	// Needs to be unique within a component, will be used as a prefix for the Ingress's host
+	// if the Ingress is set.
+	Name string `json:"name"`
+
+	Port     int    `json:"port"`
+	Protocol string `json:"protocol,omitempty"`
+}
+
+type ComponentIngressSpec struct {
+	// Path is matched agaisnt the path of the incoming request. Path must begin with
+	// a '/'.
+	// +kubebuilder:default:=/
+	Path string `json:"path,omitempty"`
+
+	// https://pkg.go.dev/k8s.io/api@v0.27.2/networking/v1#HTTPIngressPath
+	// Defaults to Prefix
+	// +optional
+	PathType *networking.PathType `json:"path_type,omitempty"`
 }

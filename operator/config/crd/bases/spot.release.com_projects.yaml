@@ -141,24 +141,42 @@ spec:
                           type: object
                         name:
                           type: string
-                        services:
+                        networks:
                           description: Network service
                           items:
                             properties:
                               ingress:
+                                description: If the Ingress field is set, an ingress
+                                  will be created with the spec
+                                properties:
+                                  path:
+                                    default: /
+                                    description: Path is matched agaisnt the path
+                                      of the incoming request. Path must begin with
+                                      a '/'.
+                                    type: string
+                                  path_type:
+                                    description: https://pkg.go.dev/k8s.io/api@v0.27.2/networking/v1#HTTPIngressPath
+                                      Defaults to Prefix
+                                    type: string
+                                type: object
+                              name:
+                                description: Needs to be unique within a component,
+                                  will be used as a prefix for the Ingress's host
+                                  if the Ingress is set.
                                 type: string
                               port:
                                 type: integer
                               protocol:
                                 type: string
                             required:
+                            - name
                             - port
                             type: object
                           type: array
                       required:
                       - image
                       - name
-                      - services
                       type: object
                     type: array
                   environments:

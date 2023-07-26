@@ -24,18 +24,40 @@ const WorkspaceFinalizer = "spot.release.com/namespace"
 
 type WorkspaceStage string
 
+// +kubebuilder:validation:Enum=Initialized;Networking;Building;Deploying;Deployed;Updating;Errored;Terminating
 const (
-	WorkspaceStageInitialized WorkspaceStage = "Initialized"
+	WorkspaceStageInitialized WorkspaceStage = ""
+	WorkspaceStageNetworking  WorkspaceStage = "Networking"
 	WorkspaceStageBuilding    WorkspaceStage = "Building"
 	WorkspaceStageDeploying   WorkspaceStage = "Deploying"
 	WorkspaceStageDeployed    WorkspaceStage = "Deployed"
 	WorkspaceStageUpdating    WorkspaceStage = "Updating"
 	WorkspaceStageError       WorkspaceStage = "Errored"
 	WorkspaceStageTerminating WorkspaceStage = "Terminating"
-	WorkspaceStageDeleted     WorkspaceStage = "Deleted"
 )
 
 type WorkspaceSpec struct {
+	// The host that components can use to generate ingresses.
+	// This list assumes that there is a load balancer that can
+	// accept any of these host upstream and can direct them to
+	// the ingress controller.
+	//
+	// The domains here will be prefixed by the Workspace tag and the components'
+	// network name.
+	//
+	// # Example
+	//
+	//	tag: "my-workspace"
+	// 	host: release.com
+	// 	components:
+	// 	- name: backend
+	// 		network:
+	// 		  name: app
+	//
+	// For the `backend` component, if an ingress is created, it would be configured
+	// to listen to `app.my-workspace.release.com`
+	Host string `json:"host"`
+
 	// Collection of all the components that are required for this
 	// workspace to deploy.
 	Components []ComponentSpec `json:"components,omitempty"`
@@ -46,14 +68,10 @@ type WorkspaceSpec struct {
 	// Default tag for all the images that are build that don't
 	// have a tag specified to them. If no value is set,
 	// it will be created before the builds starts.
+	// A tag needs to be a valid DNS_LABEL and as such, it needs to
+	// start with an alphabetic character (no numbers)
 	// +optional
 	Tag string `json:"tag,omitempty"`
-}
-
-type ServiceSpec struct {
-	Ingress  string `json:"ingress,omitempty"`
-	Port     int    `json:"port"`
-	Protocol string `json:"protocol,omitempty"`
 }
 
 type EnvironmentSpec struct {
@@ -68,8 +86,6 @@ type WorkspaceStatus struct {
 	// namespace
 	Namespace string `json:"namespace,omitempty"` //omitempty until the code exists
 
-	// +kubebuilder:validation:Enum=Initialized;Building;Deploying;Deployed;Updating;Errored;Terminating;Deleted
-	// +kubebuilder:default:=Initialized
 	Stage WorkspaceStage `json:"stage,omitempty"`
 
 	// Builds are the unit of work associated for each of the builds
@@ -81,6 +97,11 @@ type WorkspaceStatus struct {
 	// also possible for some services in a workspace to have images that don't
 	// require a build (think database, etc.).
 	Images map[string]BuildImage `json:"images,omitempty"`
+
+	// References to services that are created for this workspace.
+	// These service are needed to figure out ports mapping for the
+	// container when the workspace is in the Deploying stage.
+	Services map[string]ServiceReference `json:"services,omitempty"`
 }
 
 //+kubebuilder:object:root=true

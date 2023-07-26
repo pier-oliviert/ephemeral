@@ -20,11 +20,14 @@ import (
 	"context"
 	"fmt"
 
+	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	spot "github.com/releasehub-com/spot/operator/api/v1alpha1"
@@ -42,8 +45,7 @@ type WorkspaceReconciler struct {
 //+kubebuilder:rbac:groups=spot.release.com,resources=workspaces/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=spot.release.com,resources=workspaces/finalizers,verbs=update
 //+kubebuilder:rbac:groups=spot.release.com,resources=events,verbs=create;patch
-//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;watch;list;create;delete
-//+kubebuilder:rbac:groups="",resources=services,verbs=get;watch;list;create;delete
+//+kubebuilder:rbac:groups="",resources=namespaces;services,verbs=get;watch;list;create;delete
 //+kubebuilder:rbac:groups="networking.k8s.io",resources=ingresses,verbs=get;watch;list;create;delete
 
 func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -56,6 +58,15 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		logger.Error(err, "Couldn't retrieve the workspace", "NamespacedName", req.NamespacedName)
 		return ctrl.Result{}, nil
+	}
+
+	if !workspace.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Set the stage to Terminating so the following switch case
+		// can properly terminate the workspace
+		workspace.Status.Stage = spot.WorkspaceStageTerminating
+		if err := r.Status().Update(ctx, &workspace); err != nil {
+			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
+		}
 	}
 
 	switch workspace.Status.Stage {
@@ -71,6 +82,12 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		r.EventRecorder.Event(&workspace, "Normal", "Initialized", fmt.Sprintf("Workspace initialized, assigned to namespace: %s", workspace.Status.Namespace))
 
+	case spot.WorkspaceStageNetworking:
+		r.EventRecorder.Event(&workspace, "Normal", "Networking", "Creating network resources for this workspace")
+		networking := stages.Networking{Client: r.Client}
+		if err := networking.Start(ctx, &workspace); err != nil {
+			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
+		}
 	// The Workspace launched the builders but those have not
 	// completed yet. Need to monitor each of the builder object
 	// to see if they are completed and we can move forward to the next
@@ -97,17 +114,52 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err := deployment.Start(ctx, &workspace); err != nil {
 			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
 		}
-	}
 
-	if !workspace.ObjectMeta.DeletionTimestamp.IsZero() {
-		// Workspace is marked for deletion, need to clear the namespace
-		if err := stages.DestroyNamespace(ctx, &workspace, r.Client); err != nil {
+	case spot.WorkspaceStageTerminating:
+		r.EventRecorder.Event(&workspace, "Normal", string(spot.WorkspaceStageTerminating), "Removing all associated resources with workspace")
+		if err := r.terminate(ctx, &workspace); err != nil {
 			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
 		}
 
+		// Needs to re-enqueue until the finalizer is removed, otherwise, the workspace
+		// might not be GC until the delay is reached
+		if controllerutil.ContainsFinalizer(&workspace, spot.WorkspaceFinalizer) {
+			return ctrl.Result{Requeue: true}, nil
+		}
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *WorkspaceReconciler) terminate(ctx context.Context, workspace *spot.Workspace) error {
+	logger := log.FromContext(ctx)
+	namespace := core.Namespace{
+		ObjectMeta: meta.ObjectMeta{
+			Name: workspace.Status.Namespace,
+		},
+	}
+
+	if err := r.Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace); err != nil {
+		logger.Info("Error finding the namespace")
+		if errors.IsNotFound(err) {
+			logger.Info("Removing the finalizer")
+			controllerutil.RemoveFinalizer(workspace, spot.WorkspaceFinalizer)
+			return r.Update(ctx, workspace)
+		}
+
+		// Only knows how to recover from a NotFound, everything
+		// else is unrecoverable.
+		return err
+	}
+
+	if namespace.Status.Phase == core.NamespaceTerminating {
+		// Nothing more to do with this namespace, it will clear itself,
+		// the finalizer can be removed from the workspace
+		controllerutil.RemoveFinalizer(workspace, spot.WorkspaceFinalizer)
+		return r.Update(ctx, workspace)
+	}
+
+	return r.Delete(ctx, &namespace)
 }
 
 // SetupWithManager sets up the controller with the Manager.
