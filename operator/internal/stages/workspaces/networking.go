@@ -17,6 +17,13 @@ type Networking struct {
 	client.Client
 }
 
+// Name of the cert-manager ClusterIssuer CRD that will be used to generate the
+// TLS Certificate for each of the Ingress created for workspaces.
+// This issuer is *required* as the deployment will not
+// include a TLS certificate if this resource does not exist in the cluster.
+// This might become a configurable field in the future.
+const CertClusterIssuerName = "workspace-issuer"
+
 func (n *Networking) ingressRuleForNetwork(network *spot.ComponentNetworkSpec, workspace *spot.Workspace, serviceName string) (*networking.IngressRule, error) {
 	rule := networking.IngressRule{
 		Host: fmt.Sprintf("%s.%s.%s", network.Name, workspace.Spec.Tag, workspace.Spec.Host),
@@ -54,6 +61,9 @@ func (n *Networking) Start(ctx context.Context, workspace *spot.Workspace) error
 		ObjectMeta: meta.ObjectMeta{
 			GenerateName: fmt.Sprintf("%s-", workspace.Name),
 			Namespace:    workspace.Status.Namespace,
+			Annotations: map[string]string{
+				"cert-manager.io/cluster-issuer": CertClusterIssuerName,
+			},
 		},
 		Spec: networking.IngressSpec{
 			IngressClassName: &ingressClassName,
@@ -95,6 +105,17 @@ func (n *Networking) Start(ctx context.Context, workspace *spot.Workspace) error
 			}
 		}
 	}
+
+	var hosts []string
+
+	for _, rule := range ingress.Spec.Rules {
+		hosts = append(hosts, rule.Host)
+	}
+
+	ingress.Spec.TLS = []networking.IngressTLS{{
+		Hosts:      hosts,
+		SecretName: fmt.Sprintf("%s-ingress-cert", workspace.Name),
+	}}
 
 	workspace.Status.Stage = spot.WorkspaceStageBuilding
 	if err := n.Status().Update(ctx, workspace); err != nil {
