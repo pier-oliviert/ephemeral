@@ -28,6 +28,11 @@ type ProjectSpec struct {
 }
 
 type ProjectTemplateSpec struct {
+	// The host that components can use to generate ingresses.
+	// Complete description of this field explained in
+	// WorkspaceSpec
+	Host string `json:"host"`
+
 	// Collection of all the components that are required for this
 	// workspace to deploy.
 	Components []ComponentSpec `json:"components,omitempty"`

@@ -71,6 +71,9 @@ spec:
         args:
         - --leader-elect
         image: public.ecr.aws/m7s6c4t5/spot:latest
+        env:
+        - name: BUILDER_IMAGE
+          value: public.ecr.aws/m7s6c4t5/builder:latest
         name: manager
         securityContext:
           allowPrivilegeEscalation: false
