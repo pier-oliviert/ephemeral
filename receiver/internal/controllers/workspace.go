@@ -104,7 +104,8 @@ func (w *Workspace) createWorkspace(project *spot.Project, request *WorkspaceReq
 		Spec: spot.WorkspaceSpec{
 			Components:   project.Spec.Template.Components,
 			Environments: project.Spec.Template.Environments,
-			Tag:          &request.Branch.Ref, // TODO: Need to figure this out, probably wants it in the BranchSpec.
+			Host:         project.Spec.Template.Host,
+			Tag:          request.Branch.Ref, // TODO: Need to figure this out, probably wants it in the BranchSpec.
 		},
 	}
 
@@ -116,8 +117,6 @@ func (w *Workspace) createWorkspace(project *spot.Project, request *WorkspaceReq
 		}
 		workspace.Spec.Components[i] = component
 	}
-
-	workspace.Spec.Tag = &request.Branch.Ref
 
 	err := w.Client.
 		Post().

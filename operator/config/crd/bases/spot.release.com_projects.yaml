@@ -193,8 +193,13 @@ spec:
                       - value
                       type: object
                     type: array
+                  host:
+                    description: The host that components can use to generate ingresses.
+                      Complete description of this field explained in WorkspaceSpec
+                    type: string
                 required:
                 - environments
+                - host
                 type: object
             required:
             - template
