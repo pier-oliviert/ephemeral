@@ -22,10 +22,18 @@ metadata:
   namespace: spot-system
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: spot-workspace-issuer
+    cert-manager.io/issue-temporary-certificate: "true"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+    kubernetes.io/ingress.class: "nginx"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - receiver.tedtech.io
+    secretName: receiver-cert
   rules:
-  - host: "receiver.po.ngrok.app"
+  - host: "receiver.tedtech.io"
     http:
       paths:
       - path: "/"
@@ -55,7 +63,7 @@ spec:
     spec:
       serviceAccountName: spot-controller-manager
       containers:
-        - image: receiver:dev
+        - image: public.ecr.aws/m7s6c4t5/receiver:latest
           name: receiver
           ports:
           - containerPort: 3333

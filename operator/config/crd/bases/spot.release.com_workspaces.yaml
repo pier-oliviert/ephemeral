@@ -261,9 +261,9 @@ spec:
                   - name
                   - namespace
                   type: object
-                description: 'Services that are created for this workspace. TODO:
-                  FIXME: Can''t store services like this as it can easily drift. Need
-                  to store a reference instead and should pull the services as needed.'
+                description: References to services that are created for this workspace.
+                  These service are needed to figure out ports mapping for the container
+                  when the workspace is in the Deploying stage.
                 type: object
               stage:
                 type: string

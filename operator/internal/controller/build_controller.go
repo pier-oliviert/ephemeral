@@ -27,6 +27,7 @@ import (
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/env"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -221,7 +222,7 @@ func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*cor
 			ServiceAccountName: "spot-controller-manager", // TODO: Most likely to change spot-system/default to support the RBAC settings we need instead
 			Containers: []core.Container{{
 				Name:            "buildkit",
-				Image:           "builder:dev", // TODO: Need to replace this with real image
+				Image:           env.GetString("BUILDER_IMAGE", "builder:dev"),
 				ImagePullPolicy: core.PullNever,
 				Resources: core.ResourceRequirements{
 					Requests: core.ResourceList{

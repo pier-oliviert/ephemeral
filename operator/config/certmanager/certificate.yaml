@@ -50,4 +50,12 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: workspace-issuer
 spec:
-  selfSigned: {}
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: pier-olivier@release.com
+    privateKeySecretRef:
+      name: letsencrypt-spot
+    solvers:
+    - http01:
+        ingress:
+          class:  nginx
