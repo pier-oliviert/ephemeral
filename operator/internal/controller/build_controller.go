@@ -203,7 +203,7 @@ func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*cor
 	pod := &core.Pod{
 		ObjectMeta: meta.ObjectMeta{
 			Namespace:    build.Namespace,
-			GenerateName: fmt.Sprintf("%s-", build.Name),
+			GenerateName: fmt.Sprintf("build-%s-", build.Name),
 			Annotations: map[string]string{
 				"container.apparmor.security.beta.kubernetes.io/buildkit": "unconfined",
 				"container.seccomp.security.alpha.kubernetes.io/buildkit": "unconfined",
@@ -221,9 +221,8 @@ func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*cor
 			RestartPolicy:      core.RestartPolicyNever,
 			ServiceAccountName: "spot-controller-manager", // TODO: Most likely to change spot-system/default to support the RBAC settings we need instead
 			Containers: []core.Container{{
-				Name:            "buildkit",
-				Image:           env.GetString("BUILDER_IMAGE", "builder:dev"),
-				ImagePullPolicy: core.PullNever,
+				Name:  "buildkit",
+				Image: env.GetString("BUILDER_IMAGE", "builder:dev"),
 				Resources: core.ResourceRequirements{
 					Requests: core.ResourceList{
 						"memory": resource.MustParse("1Gi"),
