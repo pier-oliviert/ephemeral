@@ -22,7 +22,7 @@ type Networking struct {
 // This issuer is *required* as the deployment will not
 // include a TLS certificate if this resource does not exist in the cluster.
 // This might become a configurable field in the future.
-const CertClusterIssuerName = "workspace-issuer"
+const CertClusterIssuerName = "spot-workspace-issuer"
 
 func (n *Networking) ingressRuleForNetwork(network *spot.ComponentNetworkSpec, workspace *spot.Workspace, serviceName string) (*networking.IngressRule, error) {
 	rule := networking.IngressRule{
@@ -62,7 +62,9 @@ func (n *Networking) Start(ctx context.Context, workspace *spot.Workspace) error
 			GenerateName: fmt.Sprintf("%s-", workspace.Name),
 			Namespace:    workspace.Status.Namespace,
 			Annotations: map[string]string{
-				"cert-manager.io/cluster-issuer": CertClusterIssuerName,
+				"cert-manager.io/cluster-issuer":              CertClusterIssuerName,
+				"cert-manager.io/issue-temporary-certificate": "true",
+				"acme.cert-manager.io/http01-edit-in-place":   "true",
 			},
 		},
 		Spec: networking.IngressSpec{
