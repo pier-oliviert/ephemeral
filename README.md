@@ -5,6 +5,14 @@ Managing ephemeral environment in your kubernetes cluster
 You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
 **Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
 
+### Admission Webhooks
+
+Admission webhooks are only supported if the operator is running *inside* a cluster. This means that if you run the operator through `make run` it will raise an error on startup. You can disable the admission webhooks from the operator by using an environment variable.
+
+```sh
+DISABLE_WEBHOOKS=true make run
+```
+
 ### Dependencies
 
 ```sh

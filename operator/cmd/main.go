@@ -23,6 +23,7 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/utils/env"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -113,9 +114,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&spotv1alpha1.Workspace{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Workspace")
-		os.Exit(1)
+	if value, _ := env.GetBool("DISABLE_WEBHOOKS", false); value == false {
+		if err = (&spotv1alpha1.Workspace{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "Workspace")
+			os.Exit(1)
+		}
 	}
 	//+kubebuilder:scaffold:builder
 
