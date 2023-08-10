@@ -59,15 +59,16 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	// Ignore everything about this workspace if the workspace is scheduled to be deleted.
+	if !workspace.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.terminate(ctx, &workspace)
+	}
+
 	switch workspace.Status.Phase {
 	case "":
 		workspace.Status.Phase = spot.WorkspacePhaseRunning
 	case spot.WorkspacePhaseError:
 		return ctrl.Result{}, nil
-	}
-
-	if !workspace.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.terminate(ctx, &workspace)
 	}
 
 	if condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionNamespace); condition.Status == spot.ConditionInitialized {
