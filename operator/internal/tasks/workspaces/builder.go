@@ -48,8 +48,10 @@ func Build(ctx context.Context, workspace *spot.Workspace, c client.Client) erro
 	}
 
 	if len(builds) == 0 {
-		// Nothing to build, moving the workspace to the next stage
-		workspace.Status.Stage = spot.WorkspaceStageDeploying
+		workspace.Status.Conditions.SetCondition(&spot.WorkspaceCondition{
+			Type:   spot.WorkspaceConditionImages,
+			Status: spot.ConditionSuccess,
+		})
 		return c.Status().Update(ctx, workspace)
 	}
 
@@ -63,6 +65,10 @@ func Build(ctx context.Context, workspace *spot.Workspace, c client.Client) erro
 		references = append(references, build.GetReference())
 	}
 
+	workspace.Status.Conditions.SetCondition(&spot.WorkspaceCondition{
+		Type:   spot.WorkspaceConditionImages,
+		Status: spot.ConditionInProgress,
+	})
 	workspace.Status.Builds = references
 
 	return c.Status().Update(ctx, workspace)
@@ -81,8 +87,10 @@ func MonitorBuilds(ctx context.Context, workspace *spot.Workspace, c client.Clie
 		return nil
 	}
 
-	// We're done, move to next stage
-	workspace.Status.Stage = spot.WorkspaceStageDeploying
+	workspace.Status.Conditions.SetCondition(&spot.WorkspaceCondition{
+		Type:   spot.WorkspaceConditionImages,
+		Status: spot.ConditionSuccess,
+	})
 
 	return c.Status().Update(ctx, workspace)
 }

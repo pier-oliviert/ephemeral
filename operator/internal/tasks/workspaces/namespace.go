@@ -25,7 +25,10 @@ func AssignNamespace(ctx context.Context, workspace *spot.Workspace, c client.Cl
 		workspace.Status.Namespace = namespace.Name
 	}
 
-	workspace.Status.Stage = spot.WorkspaceStageNetworking
+	workspace.Status.Conditions.SetCondition(&spot.WorkspaceCondition{
+		Type:   spot.WorkspaceConditionNamespace,
+		Status: spot.ConditionSuccess,
+	})
 
 	return c.Status().Update(ctx, workspace)
 }

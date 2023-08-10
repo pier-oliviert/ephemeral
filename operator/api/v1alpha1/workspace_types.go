@@ -86,6 +86,16 @@ type WorkspaceStatus struct {
 	// namespace
 	Namespace string `json:"namespace,omitempty"` //omitempty until the code exists
 
+	// Conditions are how the operator handle state transition. Each condition
+	// represent a task that needs to go to completion.
+	Conditions WorkspaceConditions `json:"conditions,omitempty"`
+
+	// Phase is a high overview of the state of this workspace. It is used as a proxy
+	// to represent the current state of the Workspace with regards to its conditions.
+	// +kubebuilder:default:Running
+	Phase WorkspacePhase `json:"phase"`
+
+	// DEPRECATED
 	Stage WorkspaceStage `json:"stage,omitempty"`
 
 	// Builds are the unit of work associated for each of the builds
@@ -104,9 +114,80 @@ type WorkspaceStatus struct {
 	Services map[string]ServiceReference `json:"services,omitempty"`
 }
 
+type WorkspacePhase string
+
+const (
+	WorkspacePhaseRunning     WorkspacePhase = "Running"
+	WorkspacePhaseError       WorkspacePhase = "Error"
+	WorkspacePhaseTerminating WorkspacePhase = "Terminating"
+)
+
+type WorkspaceConditions []WorkspaceCondition
+
+// Condition will retrieve a *copy* of the condition if it exists. If it doesn't exists,
+// it will create a new one. In order to persist the condition on the status stack,
+// the condition needs to be applied by calling
+// SetCondition(condition)
+func (w *WorkspaceConditions) GetCondition(wct WorkspaceConditionType) WorkspaceCondition {
+	for _, c := range *w {
+		if c.Type == wct {
+			return c
+		}
+	}
+
+	return WorkspaceCondition{
+		Type:   wct,
+		Status: ConditionInitialized,
+	}
+}
+
+func (w *WorkspaceConditions) SetCondition(condition *WorkspaceCondition) {
+	inserted := false
+
+	if condition.LastTransitionTime.IsZero() {
+		condition.LastTransitionTime = metav1.Now()
+	}
+
+	for i, c := range *w {
+		if c.Type == condition.Type {
+			(*w)[i] = *condition
+			inserted = true
+			break
+		}
+	}
+
+	if !inserted {
+		*w = append(*w, *condition)
+	}
+}
+
+type WorkspaceConditionType string
+
+// The lifecycle of a workspace will go through all of those
+// conditions. Some of them requires conditions to be successful
+// before starting.
+const (
+	WorkspaceConditionNamespace  WorkspaceConditionType = "Namespace"
+	WorkspaceConditionNetworking WorkspaceConditionType = "Networking"
+	WorkspaceConditionImages     WorkspaceConditionType = "Building Images"
+	WorkspaceConditionDeployment WorkspaceConditionType = "Deployment"
+)
+
+type WorkspaceCondition struct {
+	// Type is the type of the condition and can be think of a task that needs
+	// to run for a workspace to become healthy.
+	Type WorkspaceConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=WorkspaceConditionType"`
+	// Status is the status of the condition.
+	// Can be True, False, Error.
+	Status ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus"`
+	// Last time the condition transitioned from one status to another.
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,4,opt,name=lastTransitionTime"`
+}
+
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Stage",type=string,JSONPath=`.status.stage`
+//+kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.phase`
 
 // Workspace is the Schema for the workspaces API
 type Workspace struct {

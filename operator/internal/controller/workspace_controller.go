@@ -11,8 +11,7 @@ Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
-limitations under the License.
-*/
+limitations under the License.  */
 
 package controller
 
@@ -31,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	spot "github.com/releasehub-com/spot/operator/api/v1alpha1"
-	stages "github.com/releasehub-com/spot/operator/internal/stages/workspaces"
+	tasks "github.com/releasehub-com/spot/operator/internal/tasks/workspaces"
 )
 
 // WorkspaceReconciler reconciles a Workspace object
@@ -60,79 +59,74 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	if !workspace.ObjectMeta.DeletionTimestamp.IsZero() {
-		// Set the stage to Terminating so the following switch case
-		// can properly terminate the workspace
-		workspace.Status.Stage = spot.WorkspaceStageTerminating
-		if err := r.Status().Update(ctx, &workspace); err != nil {
-			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
-		}
+	switch workspace.Status.Phase {
+	case "":
+		workspace.Status.Phase = spot.WorkspacePhaseRunning
+	case spot.WorkspacePhaseError:
+		return ctrl.Result{}, nil
 	}
 
-	switch workspace.Status.Stage {
+	if !workspace.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.terminate(ctx, &workspace)
+	}
 
-	// The Workspace was just created and nothing has happened to it
-	// yet. The first step is to start the building process.
-	case spot.WorkspaceStageInitialized:
-		// Let's first create a namespace for the workspace
-		err := stages.AssignNamespace(ctx, &workspace, r.Client)
+	if condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionNamespace); condition.Status == spot.ConditionInitialized {
+		err := tasks.AssignNamespace(ctx, &workspace, r.Client)
 		if err != nil {
-			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
+			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
 		}
-
 		r.EventRecorder.Event(&workspace, "Normal", "Initialized", fmt.Sprintf("Workspace initialized, assigned to namespace: %s", workspace.Status.Namespace))
+	}
 
-	case spot.WorkspaceStageNetworking:
+	// Can't move further until the namespace condition is properly setup
+	if condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionNamespace); condition.Status != spot.ConditionSuccess {
+		r.EventRecorder.Event(&workspace, "Normal", string(condition.Type), "Namespace not ready, waiting.")
+		return ctrl.Result{}, nil
+	}
+
+	if condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionNetworking); condition.Status == spot.ConditionInitialized {
 		r.EventRecorder.Event(&workspace, "Normal", "Networking", "Creating network resources for this workspace")
-		networking := stages.Networking{Client: r.Client}
+		networking := tasks.Networking{Client: r.Client}
 		if err := networking.Start(ctx, &workspace); err != nil {
-			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
+			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
 		}
-	// The Workspace launched the builders but those have not
-	// completed yet. Need to monitor each of the builder object
-	// to see if they are completed and we can move forward to the next
-	// stage
-	case spot.WorkspaceStageBuilding:
-		if len(workspace.Status.Builds) == 0 {
-			r.EventRecorder.Event(&workspace, "Normal", string(spot.WorkspaceStageBuilding), "deploying builders")
-			if err := stages.Build(ctx, &workspace, r.Client); err != nil {
-				return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
+		return ctrl.Result{}, nil
+	}
+
+	if condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionImages); condition.Status != spot.ConditionSuccess {
+		switch condition.Status {
+		case spot.ConditionInitialized:
+			r.EventRecorder.Event(&workspace, "Normal", string(spot.WorkspaceConditionImages), "deploying builders")
+			if err := tasks.Build(ctx, &workspace, r.Client); err != nil {
+				return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
 			}
-		} else {
-			if err := stages.MonitorBuilds(ctx, &workspace, r.Client); err != nil {
-				return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
+		case spot.ConditionError:
+			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, fmt.Errorf("build failed"))
+		default:
+			if err := tasks.MonitorBuilds(ctx, &workspace, r.Client); err != nil {
+				return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
 			}
+			r.EventRecorder.Event(&workspace, "Normal", string(spot.WorkspaceConditionImages), "waiting for builds to complete")
+		}
 
-			if workspace.Status.Stage == spot.WorkspaceStageBuilding {
-				r.EventRecorder.Event(&workspace, "Normal", string(spot.WorkspaceStageBuilding), "waiting for builds to complete")
+		return ctrl.Result{}, nil
+	}
+
+	if workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionImages).Status == spot.ConditionSuccess {
+		condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionDeployment)
+		if condition.Status == spot.ConditionInitialized {
+			r.EventRecorder.Event(&workspace, "Normal", "Deploying", "Deploying services and updating routes")
+			deployment := tasks.Deployment{Client: r.Client}
+			if err := deployment.Start(ctx, &workspace); err != nil {
+				return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
 			}
-		}
-
-	case spot.WorkspaceStageDeploying:
-		r.EventRecorder.Event(&workspace, "Normal", "Deploying", "Deploying services and updating routes")
-		deployment := stages.Deployment{Client: r.Client}
-		if err := deployment.Start(ctx, &workspace); err != nil {
-			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
-		}
-
-	case spot.WorkspaceStageTerminating:
-		r.EventRecorder.Event(&workspace, "Normal", string(spot.WorkspaceStageTerminating), "Removing all associated resources with workspace")
-		if err := r.terminate(ctx, &workspace); err != nil {
-			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, err)
-		}
-
-		// Needs to re-enqueue until the finalizer is removed, otherwise, the workspace
-		// might not be GC until the delay is reached
-		if controllerutil.ContainsFinalizer(&workspace, spot.WorkspaceFinalizer) {
-			return ctrl.Result{Requeue: true}, nil
 		}
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *WorkspaceReconciler) terminate(ctx context.Context, workspace *spot.Workspace) error {
-	logger := log.FromContext(ctx)
+func (r *WorkspaceReconciler) terminate(ctx context.Context, workspace *spot.Workspace) (ctrl.Result, error) {
 	namespace := core.Namespace{
 		ObjectMeta: meta.ObjectMeta{
 			Name: workspace.Status.Namespace,
@@ -140,37 +134,57 @@ func (r *WorkspaceReconciler) terminate(ctx context.Context, workspace *spot.Wor
 	}
 
 	if err := r.Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace); err != nil {
-		logger.Info("Error finding the namespace")
-		if errors.IsNotFound(err) {
-			logger.Info("Removing the finalizer")
-			controllerutil.RemoveFinalizer(workspace, spot.WorkspaceFinalizer)
-			return r.Update(ctx, workspace)
+		// Termination can only deal with ErrNotFound. Anything else means
+		// something unexpected happened.
+		if !errors.IsNotFound(err) {
+			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, workspace, nil, err)
 		}
 
-		// Only knows how to recover from a NotFound, everything
-		// else is unrecoverable.
-		return err
+		if controllerutil.ContainsFinalizer(workspace, spot.WorkspaceFinalizer) {
+			controllerutil.RemoveFinalizer(workspace, spot.WorkspaceFinalizer)
+			if err := r.Update(ctx, workspace); err != nil {
+				return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, workspace, nil, err)
+			}
+
+			return ctrl.Result{}, nil
+		}
 	}
 
+	// If the naemspace is being deleted, let's wait for it to finish.
 	if namespace.Status.Phase == core.NamespaceTerminating {
-		// Nothing more to do with this namespace, it will clear itself,
-		// the finalizer can be removed from the workspace
-		controllerutil.RemoveFinalizer(workspace, spot.WorkspaceFinalizer)
-		return r.Update(ctx, workspace)
+		return ctrl.Result{Requeue: true}, nil
 	}
 
-	return r.Delete(ctx, &namespace)
+	r.EventRecorder.Event(workspace, "Normal", string(spot.WorkspacePhaseTerminating), "Removing all associated resources with workspace")
+
+	workspace.Status.Phase = spot.WorkspacePhaseTerminating
+	if err := r.Status().Update(ctx, workspace); err != nil {
+		return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, workspace, nil, err)
+	}
+
+	if err := r.Delete(ctx, &namespace); err != nil {
+		return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, workspace, nil, err)
+	}
+
+	return ctrl.Result{Requeue: true}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&spot.Workspace{}).
+		Owns(&spot.Workspace{}).
 		Complete(r)
 }
 
-func (r *WorkspaceReconciler) markWorkspaceHasErrored(ctx context.Context, workspace *spot.Workspace, err error) error {
+func (r *WorkspaceReconciler) markWorkspaceHasErrored(ctx context.Context, workspace *spot.Workspace, conditionType *spot.WorkspaceConditionType, err error) error {
 	r.EventRecorder.Event(workspace, "Warning", string(spot.WorkspaceStageError), err.Error())
-	workspace.Status.Stage = spot.WorkspaceStageError
+	if conditionType != nil {
+		workspace.Status.Conditions.SetCondition(&spot.WorkspaceCondition{
+			Type:   *conditionType,
+			Status: spot.ConditionError,
+		})
+	}
+	workspace.Status.Phase = spot.WorkspacePhaseError
 	return r.Client.Status().Update(ctx, workspace)
 }

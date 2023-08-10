@@ -158,7 +158,10 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 		// TODO: Workspace CRD should watch for builds and should update
 		// its own stage.
-		workspace.Status.Stage = spot.WorkspaceStageError
+		workspace.Status.Conditions.SetCondition(&spot.WorkspaceCondition{
+			Type:   spot.WorkspaceConditionImages,
+			Status: spot.ConditionError,
+		})
 		if err := r.Client.SubResource("status").Update(ctx, &workspace); err != nil {
 			logger.Error(err, "fatal error updating the workspace status")
 		}

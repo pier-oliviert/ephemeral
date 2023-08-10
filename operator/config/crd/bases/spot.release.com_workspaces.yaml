@@ -15,8 +15,8 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.stage
-      name: Stage
+    - jsonPath: .status.phase
+      name: Status
       type: string
     name: v1alpha1
     schema:
@@ -231,6 +231,29 @@ spec:
                   - namespace
                   type: object
                 type: array
+              conditions:
+                description: Conditions are how the operator handle state transition.
+                  Each condition represent a task that needs to go to completion.
+                items:
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      format: date-time
+                      type: string
+                    status:
+                      description: Status is the status of the condition. Can be True,
+                        False, Error.
+                      type: string
+                    type:
+                      description: Type is the type of the condition and can be think
+                        of a task that needs to run for a workspace to become healthy.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
               images:
                 additionalProperties:
                   properties:
@@ -247,6 +270,11 @@ spec:
                 description: ManagedNamespace is the namespace that will be associated
                   with this workspace. All k8s objects that will need to exist for
                   this workspace will live under that namespace
+                type: string
+              phase:
+                description: Phase is a high overview of the state of this workspace.
+                  It is used as a proxy to represent the current state of the Workspace
+                  with regards to its conditions.
                 type: string
               services:
                 additionalProperties:
@@ -266,7 +294,10 @@ spec:
                   when the workspace is in the Deploying stage.
                 type: object
               stage:
+                description: DEPRECATED
                 type: string
+            required:
+            - phase
             type: object
         type: object
     served: true

@@ -119,7 +119,11 @@ func (n *Networking) Start(ctx context.Context, workspace *spot.Workspace) error
 		SecretName: fmt.Sprintf("%s-ingress-cert", workspace.Name),
 	}}
 
-	workspace.Status.Stage = spot.WorkspaceStageBuilding
+	workspace.Status.Conditions.SetCondition(&spot.WorkspaceCondition{
+		Type:   spot.WorkspaceConditionNetworking,
+		Status: spot.ConditionSuccess,
+	})
+
 	if err := n.Status().Update(ctx, workspace); err != nil {
 		return err
 	}
