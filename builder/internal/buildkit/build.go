@@ -1,33 +1,19 @@
-package sources
+package buildkit
 
 import (
 	"context"
 	"fmt"
-	"io/fs"
-	"log"
 	"os"
 	"os/exec"
 
 	spot "github.com/releasehub-com/spot/operator/api/v1alpha1"
 )
 
-// TODO: Remove hardcoded auth here and use credentials stored in k8s
-// TODO: Replace exec.CommandContext with llb.Client
-func HardCodedBuildFromGithub(ctx context.Context) (*spot.BuildImage, error) {
-	payload := os.Getenv("REGISTRY_AUTH")
+func Build(ctx context.Context) (*spot.BuildImage, error) {
 	repo := os.Getenv("REPOSITORY_URL")
 	ref := os.Getenv("REPOSITORY_REF")
 	registry := os.Getenv("IMAGE_URL")
 	imageTag := os.Getenv("IMAGE_TAG")
-	err := os.Mkdir(fmt.Sprint(os.Getenv("HOME"), "/.docker"), 0777)
-	if err != nil {
-		log.Println(err)
-	}
-
-	err = os.WriteFile(fmt.Sprint(os.Getenv("HOME"), "/.docker/config.json"), []byte(payload), fs.ModeAppend)
-	if err != nil {
-		return nil, err
-	}
 
 	file, err := os.CreateTemp("/tmp", "build-manifest-*")
 	if err != nil {
@@ -45,9 +31,26 @@ func HardCodedBuildFromGithub(ctx context.Context) (*spot.BuildImage, error) {
 		return nil, err
 	}
 
-	// TODO: Parse the metadata file and return the information inside the BuildImage
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := file.Seek(0, 0); err != nil {
+		return nil, err
+	}
+
+	// Passing an int64 to make is safe here as
+	// it's practically impossible for the metadata file to exceed the upper bound of int.
+	// We'd  have much bigger problem if we're truncating the content to max-int instad of max-in64.
+	content := make([]byte, stat.Size())
+
+	if _, err := file.Read(content); err != nil {
+		return nil, err
+	}
+
 	return &spot.BuildImage{
-		URL:    fmt.Sprint(registry, ":", imageTag),
-		Digest: "TODO: digest from manifest",
+		URL:      fmt.Sprint(registry, ":", imageTag),
+		Metadata: string(content),
 	}, nil
 }
