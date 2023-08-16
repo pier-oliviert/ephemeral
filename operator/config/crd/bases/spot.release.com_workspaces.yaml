@@ -257,7 +257,7 @@ spec:
               images:
                 additionalProperties:
                   properties:
-                    digest:
+                    metadata:
                       type: string
                     url:
                       type: string

@@ -108,7 +108,7 @@ spec:
                   was created by this build. This value is nil until the stage reaches
                   BuildStageDone
                 properties:
-                  digest:
+                  metadata:
                     type: string
                   url:
                     type: string

@@ -44,8 +44,8 @@ type BuildStatus struct {
 }
 
 type BuildImage struct {
-	Digest string `json:"digest,omitempty"`
-	URL    string `json:"url,omitempty"`
+	Metadata string `json:"metadata,omitempty"`
+	URL      string `json:"url,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=Running;Done;Errored

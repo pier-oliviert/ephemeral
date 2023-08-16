@@ -255,17 +255,6 @@ func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*cor
 						Name:  "IMAGE_TAG",
 						Value: r.tagFor(build),
 					},
-					{
-						Name: "REGISTRY_AUTH",
-						ValueFrom: &core.EnvVarSource{
-							ConfigMapKeyRef: &core.ConfigMapKeySelector{
-								LocalObjectReference: core.LocalObjectReference{
-									Name: "click-mania",
-								},
-								Key: "registry.auth",
-							},
-						},
-					},
 				},
 				SecurityContext: &core.SecurityContext{
 					Privileged: &privileged,
