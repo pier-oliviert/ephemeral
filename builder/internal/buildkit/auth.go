@@ -29,7 +29,7 @@ type Credential struct {
 }
 
 func NewRegistryAuth(path string) (*RegistryAuth, error) {
-	err := os.Mkdir(fmt.Sprint(path), 0777)
+	err := os.MkdirAll(fmt.Sprint(path), os.ModeDir)
 	if err != nil {
 		return nil, err
 	}
