@@ -6,51 +6,41 @@ import (
 	"os"
 	"os/exec"
 
-	spot "github.com/releasehub-com/spot/operator/api/v1alpha1"
+	gcr "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/layout"
+	"github.com/releasehub-com/spot/builder/internal/source"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func Build(ctx context.Context) (*spot.BuildImage, error) {
-	repo := os.Getenv("REPOSITORY_URL")
-	ref := os.Getenv("REPOSITORY_REF")
-	registry := os.Getenv("IMAGE_URL")
-	imageTag := os.Getenv("IMAGE_TAG")
+var ImagePath = fmt.Sprintf("%s/%s", os.TempDir(), "image")
 
-	file, err := os.CreateTemp("/tmp", "build-manifest-*")
-	if err != nil {
-		return nil, err
-	}
+// Build the repository into an ImageIndex (OCI Standard)
+// The context is set around the repository which means it needs to be
+// present in the filesystem.
+//
+// The build execute buildkit as a system command directly and
+// pipes both STDOUT and STDERR to their respective file descriptor.
+//
+// The error that returns from Build is any error that is returned from the buildkit
+// process.
+//
+// The ImageIndex is generated from go-containerregistry and is a valid
+// OCI ImageIndex that can be exported to any container registry.
+func Build(ctx context.Context, repo *source.Repository) (gcr.ImageIndex, error) {
+	logger := log.FromContext(ctx)
+
+	logger.Info("Starting a build from a Repo", "Path", repo.Path())
 
 	cmd := exec.CommandContext(ctx, "buildctl", "build", "--frontend", "dockerfile.v0")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Args = append(cmd.Args, "--opt", fmt.Sprintf("context=%s#%s", repo, ref))
-	cmd.Args = append(cmd.Args, "--output", fmt.Sprintf("type=image,name=%s:%s,push=true", registry, imageTag))
-	cmd.Args = append(cmd.Args, "--metadata-file", file.Name())
-	err = cmd.Run()
+	cmd.Args = append(cmd.Args, "--local", fmt.Sprintf("context=%s", repo.Path()))
+	cmd.Args = append(cmd.Args, "--local", fmt.Sprintf("dockerfile=%s", repo.Path()))
+	cmd.Args = append(cmd.Args, "--output", fmt.Sprintf("type=oci,dest=%s,tar=false", ImagePath))
+	err := cmd.Run()
 	if err != nil {
 		return nil, err
 	}
 
-	stat, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := file.Seek(0, 0); err != nil {
-		return nil, err
-	}
-
-	// Passing an int64 to make is safe here as
-	// it's practically impossible for the metadata file to exceed the upper bound of int.
-	// We'd  have much bigger problem if we're truncating the content to max-int instad of max-in64.
-	content := make([]byte, stat.Size())
-
-	if _, err := file.Read(content); err != nil {
-		return nil, err
-	}
-
-	return &spot.BuildImage{
-		URL:      fmt.Sprint(registry, ":", imageTag),
-		Metadata: string(content),
-	}, nil
+	return layout.ImageIndexFromPath(ImagePath)
 }
