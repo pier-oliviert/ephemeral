@@ -2,42 +2,57 @@
 Managing ephemeral environment in your kubernetes cluster
 
 ## Development
-You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
-**Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
+You’ll need a Kubernetes cluster to run against. It's recommended to use [KIND](https://sigs.k8s.io/kind) as it was created to generate cluster rapidly with configuration files and such a config file exists in this repo to help you get started.
 
-### Admission Webhooks
+### KIND
 
-Admission webhooks are only supported if the operator is running *inside* a cluster. This means that if you run the operator through `make run` it will raise an error on startup. You can disable the admission webhooks from the operator by using an environment variable.
+It is recommended to create a cluster using the configuration file present in this repository.
 
 ```sh
-DISABLE_WEBHOOKS=true make run
+kind create cluster --config kind.config.yaml
 ```
 
 ### Dependencies
+
+For the operator to work properly, [Cert-manager](https://cert-manager.io/docs/) and [NGINX controller](https://kubernetes.github.io/ingress-nginx/deploy/) need to be running. You can follow the deployment guide provided in their documentation or you can
+use the following commands to install them in your KIND cluster.
 
 ```sh
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.12.0/cert-manager.yaml
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 ```
 
-### Running on the cluster
-1. Install Instances of Custom Resources:
+### Building from source
+
+Each subproject can be deployed to the KIND cluster the same way. First, the project needs to be build and published to the local docker environment using a `$TAG` of your choosing, in the example below, the tag is `operator`. Once the build is completed,
+it can be uploaded to the KIND cluster by using `kind load docker-image $TAG`.
 
 ```sh
-kubectl apply -f config/samples/
+export TAG=operator
+cd operator/
+docker build -t $TAG .
+kind load docker-image $TAG
 ```
 
-2. Build and push your image to the location specified by `IMG`:
+### Installing CRDs on the cluster
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/spot:tag
+cd operator/
+make generate
+make manifest
+make deploy
 ```
 
-3. Deploy the controller to the cluster with the image specified by `IMG`:
+### Admission Webhooks
+
+Admission webhooks are only supported if the operator is running *inside* a cluster. This means that if you run the operator through `make run` it will raise an error on startup. You can disable the admission webhooks from the operator by using an environment variable.
+
+**Note:** If you plan on running the operator within the KIND cluster, this step is not needed.
 
 ```sh
-make deploy IMG=<some-registry>/spot:tag
+DISABLE_WEBHOOKS=true make run
 ```
+
 
 ### Uninstall CRDs
 To delete the CRDs from the cluster:
