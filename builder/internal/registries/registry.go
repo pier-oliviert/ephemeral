@@ -1,6 +1,7 @@
 package registries
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -21,11 +22,21 @@ func Upload(index gcr.ImageIndex, url string) (*spot.BuildImage, error) {
 		return nil, err
 	}
 
-	registry := os.Getenv("IMAGE_URL")
+	manifest, err := index.IndexManifest()
+	if err != nil {
+		return nil, err
+	}
+
+	metadata, err := json.Marshal(manifest)
+	if err != nil {
+		return nil, err
+	}
+
+	registry := os.Getenv("REGISTRY_URL")
 	imageTag := os.Getenv("IMAGE_TAG")
 
 	return &spot.BuildImage{
 		URL:      fmt.Sprint(registry, ":", imageTag),
-		Metadata: "",
+		Metadata: string(metadata),
 	}, nil
 }

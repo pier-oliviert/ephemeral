@@ -63,7 +63,7 @@ func main() {
 		panic(err)
 	}
 
-	image, err := registries.Upload(imageIndex, env.GetString("REGISTRY_URL", "oci://undefined.image"))
+	image, err := registries.Upload(imageIndex, env.GetString("REGISTRY_URL", ""))
 	if err != nil {
 		panic(err)
 	}

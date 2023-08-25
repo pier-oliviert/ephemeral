@@ -2,6 +2,15 @@
 Managing ephemeral environment in your kubernetes cluster
 
 ## Development
+
+### Podman machine
+
+The default machine might not have enough CPU to run the whole environment as many pods needs to run and each of them have a resource quotas set. By default on OSX, the machine only has 1 CPU. It's preferrable to have 4 to make sure everything works fine.
+
+```sh
+podman machine init --cpus=4
+```
+
 You’ll need a Kubernetes cluster to run against. It's recommended to use [KIND](https://sigs.k8s.io/kind) as it was created to generate cluster rapidly with configuration files and such a config file exists in this repo to help you get started.
 
 ### KIND
