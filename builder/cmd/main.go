@@ -31,7 +31,7 @@ func main() {
 		panic(err)
 	}
 
-	src, err := source.FromRepository("build.Name", os.Getenv("REPOSITORY_URL"), os.Getenv("REPOSITORY_REF"))
+	src, err := source.FromGitURL("build.Name", os.Getenv("REPOSITORY_URL"), os.Getenv("REPOSITORY_REF"))
 	if err != nil {
 		panic(err)
 	}

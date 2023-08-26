@@ -12,6 +12,7 @@ import (
 	spot "github.com/releasehub-com/spot/operator/api/v1alpha1"
 )
 
+// Upload the given imageIndex to the registy at `url`
 func Upload(index gcr.ImageIndex, url string) (*spot.BuildImage, error) {
 	ref, err := name.ParseReference(url)
 	if err != nil {

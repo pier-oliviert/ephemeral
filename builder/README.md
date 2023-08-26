@@ -10,6 +10,7 @@ in charge of monitoring its own progress as well as maintain the associated CRD'
 As the builder is executed as part of a CRD, the runtime configuration is set through environment variables within the Operator reconcile loop.
 
 |Name|Description|
+|--|----|
 |BUILD_REFERENCE|The Build CRD that initiated the execution of this build.|
 |REGISTRY_URL|URL that points to a remote registry where the image will be pushed|
 |REPOSITORY_URL|The URL where the git repository is located|
