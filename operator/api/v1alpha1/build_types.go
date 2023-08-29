@@ -126,7 +126,7 @@ func (bc BuildConditions) Phase() BuildPhase {
 type BuildCondition struct {
 	// Type is the name of the condition. Conceptually this represents a task in the process
 	// of a Build.
-	Type BuildConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=WorkspaceConditionType"`
+	Type BuildConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=BuildConditionType"`
 
 	// Status of the condition.
 	// Can be In Progress, Error, Success.
