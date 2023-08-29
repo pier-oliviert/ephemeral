@@ -188,8 +188,8 @@ github.com/prometheus/common v0.42.0 h1:EKsfXEYo4JpWMHH5cg+KOUWeuJSov1Id8zGR8eeI
 github.com/prometheus/common v0.42.0/go.mod h1:xBwqVerjNdUDjgODMpudtOMwlOwf2SaTr1yjz4b7Zbc=
 github.com/prometheus/procfs v0.9.0 h1:wzCHvIvM5SxWqYvwgVL7yJY8Lz3PKn49KQtpgMYJfhI=
 github.com/prometheus/procfs v0.9.0/go.mod h1:+pB4zwohETzFnmlpe6yd2lSc+0/46IYZRB/chUwxUZY=
-github.com/releasehub-com/spot/operator v0.0.0-20230816185452-725d04b42d4a h1:4QU5ATYVpPY2ts5VSA0iHHhpsIogTPp8joS+kcWFIeE=
-github.com/releasehub-com/spot/operator v0.0.0-20230816185452-725d04b42d4a/go.mod h1:DZIOSpAb6Ci6Sl+s7R87FM16Ur7n+9DgO8i3ffmKwjU=
+github.com/releasehub-com/spot/operator v0.0.0-20230829123149-9a157321935c h1:hZ/4DJKZ7TCKRgqRelvsE7yVaukarIUM/E4p5pE+GU0=
+github.com/releasehub-com/spot/operator v0.0.0-20230829123149-9a157321935c/go.mod h1:lWNc1sHRxuvC1PO4MH2Gv54f+2t+guhNWUmlF1qnvvg=
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/sergi/go-diff v1.1.0 h1:we8PVUC3FE2uYfodKH/nBHMSetSfHDR6scGdBi+erh0=

@@ -8,7 +8,7 @@ require (
 	github.com/google/go-containerregistry v0.16.1
 	github.com/onsi/ginkgo/v2 v2.9.5
 	github.com/onsi/gomega v1.27.7
-	github.com/releasehub-com/spot/operator v0.0.0-20230816185452-725d04b42d4a
+	github.com/releasehub-com/spot/operator v0.0.0-20230829123149-9a157321935c
 	k8s.io/apimachinery v0.28.0
 	k8s.io/client-go v0.28.0
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b

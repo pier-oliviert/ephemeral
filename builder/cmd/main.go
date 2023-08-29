@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/releasehub-com/spot/builder/internal/buildkit"
 	"github.com/releasehub-com/spot/builder/internal/k8s"
 	"github.com/releasehub-com/spot/builder/internal/registries"
@@ -28,23 +29,21 @@ func main() {
 
 	client, err := k8s.NewClient(ctx, &spot.GroupVersion)
 	if err != nil {
-		panic(err)
+		handleFatalErr(ctx, client, err)
 	}
 
-	src, err := source.FromGitURL("build.Name", os.Getenv("REPOSITORY_URL"), os.Getenv("REPOSITORY_REF"))
+	logger.Info("Fetching Build CRD")
+	build, err := client.GetBuild(ctx, strings.Split(os.Getenv("BUILD_REFERENCE"), "/"))
 	if err != nil {
-		panic(err)
+		handleFatalErr(ctx, client, err)
 	}
 
-	logger.Info("Setting up credentials for the registries")
-	auth, err := registries.NewAuth(fmt.Sprintf("%s/%s", os.Getenv("HOME"), ".docker"))
-	if err != nil {
-		panic(err)
-	}
-
-	auth.Set(os.Getenv("REGISTRY_URL"))
-	if err := auth.Store(); err != nil {
-		panic(err)
+	var src *source.Repository
+	if err := client.MonitorCondition(ctx, build, spot.BuildConditionSource, func(ctx context.Context, _ *spot.Build) error {
+		src, err = source.FromGitURL("build.Name", os.Getenv("REPOSITORY_URL"), os.Getenv("REPOSITORY_REF"))
+		return err
+	}); err != nil {
+		handleFatalErr(ctx, client, err)
 	}
 
 	logger.Info("Waiting for buildkitd to be ready")
@@ -58,39 +57,41 @@ func main() {
 	}
 	logger.Info("Buildkit ready")
 
-	imageIndex, err := buildkit.Build(ctx, src)
+	var imageIndex v1.ImageIndex
+	if err := client.MonitorCondition(ctx, build, spot.BuildConditionBuilding, func(ctx context.Context, build *spot.Build) error {
+		imageIndex, err = buildkit.Build(ctx, src)
+		return err
+	}); err != nil {
+		handleFatalErr(ctx, client, err)
+	}
+
+	logger.Info("Setting up credentials for the registries")
+	auth, err := registries.NewAuth(fmt.Sprintf("%s/%s", os.Getenv("HOME"), ".docker"))
 	if err != nil {
+		handleFatalErr(ctx, client, err)
+	}
+
+	auth.Set(os.Getenv("REGISTRY_URL"))
+	if err := auth.Store(); err != nil {
+		handleFatalErr(ctx, client, err)
+	}
+
+	if err := client.MonitorCondition(ctx, build, spot.BuildConditionRegistry, func(ctx context.Context, build *spot.Build) error {
+		image, err := registries.Upload(imageIndex, env.GetString("REGISTRY_URL", ""))
+		build.Status.Image = image
+		return err
+	}); err != nil {
+		handleFatalErr(ctx, client, err)
+	}
+}
+
+// handle unrecoverable error by attempting to update the Build custom resource one last
+// time and then panicking. This is the last chance to tell the operator the reason why this build is failing.
+func handleFatalErr(ctx context.Context, client *k8s.Client, err error) {
+	// Can't update the API if the client doesn't exist
+	if client == nil {
 		panic(err)
 	}
 
-	image, err := registries.Upload(imageIndex, env.GetString("REGISTRY_URL", ""))
-	if err != nil {
-		panic(err)
-	}
-
-	logger.Info("Fetching Build CRD")
-	references := strings.Split(os.Getenv("BUILD_REFERENCE"), "/")
-	if len(references) != 2 {
-		panic(fmt.Sprintf("BUILD_REFERENCE is expected to have 2 components, had %d: %s", len(references), os.Getenv("BUILD_REFERENCE")))
-	}
-
-	var build spot.Build
-	req := client.Get().Resource("builds").Namespace(references[0]).Name(references[1])
-	result := req.Do(ctx)
-
-	if err := result.Error(); err != nil {
-		panic(fmt.Sprintf("Error trying to get the build CRD: %v", err))
-	}
-
-	err = result.Into(&build)
-	if err != nil {
-		panic(fmt.Sprintf("Error trying format the build: %v", err))
-	}
-
-	build.Status.Stage = spot.BuildStageDone
-	build.Status.Image = image
-	result = client.Put().Resource("builds").SubResource("status").Namespace(build.Namespace).Name(build.Name).Body(&build).Do(ctx)
-	if err = result.Error(); err != nil {
-		panic(fmt.Sprintf("Error updating build: %v", err))
-	}
+	panic(err)
 }
