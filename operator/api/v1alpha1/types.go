@@ -16,8 +16,8 @@ type PodReference struct {
 	Name string `json:"name" protobuf:"bytes,2,opt,name=name"`
 }
 
-func NewPodReference(pod *core.Pod) PodReference {
-	return PodReference{
+func NewPodReference(pod *core.Pod) *PodReference {
+	return &PodReference{
 		Namespace: pod.Namespace,
 		Name:      pod.Name,
 	}

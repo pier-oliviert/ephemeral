@@ -22,5 +22,6 @@ const (
 	ConditionInitialized ConditionStatus = "Initialized"
 	ConditionInProgress  ConditionStatus = "In Progress"
 	ConditionSuccess     ConditionStatus = "Success"
+	ConditionWaiting     ConditionStatus = "Waiting"
 	ConditionError       ConditionStatus = "Error"
 )

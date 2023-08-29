@@ -53,11 +53,13 @@ spec:
                       to be pushed successfully. A build is pushed to the registry
                       only if the `RepositoryContext` exists with this `Registry`
                     properties:
-                      type:
-                        description: 'TODO: Not sure this is the way to go, might
-                          replace it'
-                        type: string
                       url:
+                        description: "URL is the complete URL that points to a registry.
+                          The Images built by the Builder will be pushed to this registry.
+                          If the registry is private, the service account that the
+                          builder runs in needs to have write access to the registry.
+                          \n TODO: Add a SecretRef so that the Builder CRD can be
+                          provided a secret for when a service account can't be set."
                         type: string
                     required:
                     - url
@@ -103,6 +105,32 @@ spec:
           status:
             description: BuildStatus defines the observed state of Build
             properties:
+              conditions:
+                description: Set of conditions that the build manages. For a build
+                  to be successful and completed, all the conditions in this set are
+                  required to have a status of ConditionSuccess. A build is considered
+                  to have failed if at least one of the condition in this list is
+                  marked as ConditionError
+                items:
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      format: date-time
+                      type: string
+                    status:
+                      description: Status of the condition. Can be In Progress, Error,
+                        Success.
+                      type: string
+                    type:
+                      description: Type is the name of the condition. Conceptually
+                        this represents a task in the process of a Build.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
               image:
                 description: The Image will store information about the image that
                   was created by this build. This value is nil until the stage reaches
@@ -113,6 +141,20 @@ spec:
                   url:
                     type: string
                 type: object
+              phase:
+                description: 'Phase is a composite of the conditions. It''s main use
+                  is to display the general state of the Build. This value is derived
+                  from the BuildConditions. There are two different outcome for this
+                  build, - Success: Before the phase shift to success, the `Image`
+                  will be set with and available. - Error: At least one condition
+                  failed and some information can be found within the Condition. Additionally,
+                  it''s possible that there''s more information available in the events
+                  stream.'
+                enum:
+                - Running
+                - Done
+                - Errored
+                type: string
               pod:
                 description: The Pod that will run the build logic It will be in charge
                   of updating the status of this Build and store the BuildImage when
@@ -128,14 +170,9 @@ spec:
                 - name
                 - namespace
                 type: object
-              stage:
-                enum:
-                - Running
-                - Done
-                - Errored
-                type: string
             required:
-            - stage
+            - conditions
+            - phase
             type: object
         type: object
     served: true
