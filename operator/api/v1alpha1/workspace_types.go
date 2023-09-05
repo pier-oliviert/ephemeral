@@ -101,7 +101,7 @@ type WorkspaceStatus struct {
 	// Builds are the unit of work associated for each of the builds
 	// that are required for this workspace to launch. Builds are seeding
 	// the Images as they complete.
-	Builds []BuildReference `json:"builds,omitempty"`
+	Builds []Reference `json:"builds,omitempty"`
 
 	// Images are seeded by Builds as they are completed. It's
 	// also possible for some services in a workspace to have images that don't
@@ -111,7 +111,7 @@ type WorkspaceStatus struct {
 	// References to services that are created for this workspace.
 	// These service are needed to figure out ports mapping for the
 	// container when the workspace is in the Deploying stage.
-	Services map[string]ServiceReference `json:"services,omitempty"`
+	Services map[string]Reference `json:"services,omitempty"`
 }
 
 type WorkspacePhase string

@@ -48,7 +48,7 @@ type BuildStatus struct {
 	// It will be in charge of updating the status
 	// of this Build and store the BuildImage
 	// when the image is ready.
-	Pod *PodReference `json:"pod,omitempty"`
+	Pod *Reference `json:"pod,omitempty"`
 
 	// The Image will store information about the image that
 	// was created by this build. This value is nil until
@@ -163,7 +163,7 @@ type BuildImage struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Stage",type=string,JSONPath=`.status.stage`
+//+kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 
 // Build is the Schema for the builds API
 type Build struct {
@@ -174,8 +174,8 @@ type Build struct {
 	Status BuildStatus `json:"status,omitempty"`
 }
 
-func (b *Build) GetReference() BuildReference {
-	return BuildReference{
+func (b *Build) GetReference() Reference {
+	return Reference{
 		Namespace: b.Namespace,
 		Name:      b.Name,
 	}

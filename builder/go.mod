@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230815210656-c8857611a995
+	github.com/go-git/go-git v4.7.0+incompatible
 	github.com/go-git/go-git/v5 v5.8.1
 	github.com/google/go-containerregistry v0.16.1
 	github.com/onsi/ginkgo/v2 v2.9.5

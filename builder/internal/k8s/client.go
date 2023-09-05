@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type Client struct {
@@ -47,9 +48,13 @@ func NewClient(ctx context.Context, groupVersion *schema.GroupVersion) (*Client,
 // Return a Build custom resource from the k8s cluster. The build holds all the information
 // to be able to build an image.
 func (c *Client) GetBuild(ctx context.Context, references []string) (*spot.Build, error) {
+	logger := log.FromContext(ctx)
+
 	if len(references) != 2 {
 		return nil, fmt.Errorf("BUILD_REFERENCE is expected to have 2 components, had %d: %s", len(references), os.Getenv("BUILD_REFERENCE"))
 	}
+
+	logger.Info("Retrieving build CRD:", "references", references)
 
 	var build spot.Build
 	req := c.Get().Resource("builds").Namespace(references[0]).Name(references[1])
@@ -106,7 +111,7 @@ func (c *Client) MonitorCondition(ctx context.Context, build *spot.Build, condit
 }
 
 func (c *Client) updateBuildStatus(ctx context.Context, build *spot.Build) error {
-	result := c.Put().Resource("builds").SubResource("status").Namespace(build.Namespace).Name(build.Name).Body(&build).Do(ctx)
+	result := c.Put().Resource("builds").SubResource("status").Namespace(build.Namespace).Name(build.Name).Body(build).Do(ctx)
 	if err := result.Error(); err != nil {
 		return err
 	}

@@ -24,6 +24,7 @@ import (
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/env"
@@ -31,14 +32,22 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	spot "github.com/releasehub-com/spot/operator/api/v1alpha1"
 )
 
 var ErrStageWithInvalidState = errors.New("stage did not match the status of the build")
 var ErrPodUnexpectlyFailed = errors.New("pod failed without notifying the build")
+
+const (
+	kPodStatusField = ".status.pod"
+)
 
 // BuildReconciler reconciles a Build object
 type BuildReconciler struct {
@@ -96,12 +105,14 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			logger.Error(err, "fatal error updating the workspace status")
 		}
 
+		return ctrl.Result{Requeue: false}, r.markBuildHasErrored(ctx, &build, errors.New("image could not be built"))
 	}
 
 	if condition := build.Status.GetCondition(spot.BuildConditionDeployPod); condition.Status == spot.ConditionInitialized {
 		// The Build is just initialized and nothing has been processed, yet. For the Build to actually start, a pod
 		// needs to be scheduled with the right service account so that it can update the state of the Build has it goes
 		// through each of the steps.
+		logger.Info("Launching pod")
 		pod, err := r.buildPod(ctx, &build)
 		if err != nil {
 			return ctrl.Result{}, r.markBuildHasErrored(ctx, &build, err)
@@ -114,7 +125,7 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			Status: spot.ConditionInProgress,
 		})
 
-		build.Status.Pod = spot.NewPodReference(pod)
+		build.Status.Pod = spot.NewReference(pod)
 		build.Status.Phase = build.Status.Conditions.Phase()
 
 		if err := r.Client.Status().Update(ctx, &build); err != nil {
@@ -133,16 +144,19 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, r.markBuildHasErrored(ctx, &build, err)
 		}
 
-		if pod.Status.Phase == core.PodFailed {
-			condition := build.Status.GetCondition(spot.BuildConditionDeployPod)
-			condition.Status = spot.ConditionError
-			build.Status.SetCondition(condition)
+		logger.Info("Pod", "Status", pod.Status)
 
-			return ctrl.Result{}, r.markBuildHasErrored(ctx, &build, ErrPodUnexpectlyFailed)
+		for _, cs := range pod.Status.ContainerStatuses {
+			if cs.State.Terminated != nil && cs.State.Terminated.ExitCode != 0 {
+				condition := build.Status.GetCondition(spot.BuildConditionDeployPod)
+				condition.Status = spot.ConditionError
+				build.Status.SetCondition(condition)
+				return ctrl.Result{}, r.markBuildHasErrored(ctx, &build, ErrPodUnexpectlyFailed)
+			}
 		}
 	}
 
-	if build.Status.Phase == spot.BuildPhaseDone {
+	if build.Status.Conditions.Phase() == spot.BuildPhaseDone {
 		// The build was successful and the pod that ran the build has completed. Let's update the status on
 		// the Workspace now that a build for that workspace is done.
 		var workspace spot.Workspace
@@ -181,7 +195,7 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				return ctrl.Result{}, nil
 			}
 
-			// Error is not of type not found, can't recover from this
+			// Error is not of type ErrNotFound, can't recover from this
 			return ctrl.Result{}, r.markBuildHasErrored(ctx, &build, err)
 		}
 
@@ -197,10 +211,64 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *BuildReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	err := mgr.GetFieldIndexer().IndexField(context.Background(), &spot.Build{}, kPodStatusField, func(rawObj client.Object) []string {
+		build := rawObj.(*spot.Build)
+		pod := build.Status.Pod
+		if pod == nil {
+			return nil
+		}
+
+		return []string{pod.Namespace, pod.Name}
+	})
+
+	if err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
-		// Uncomment the following line adding a pointer to an instance of the controlled resource as an argument
 		For(&spot.Build{}).
+		Watches(
+			&core.Pod{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueBuildReconcilerForOwnedPod),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
 		Complete(r)
+}
+
+// This Map Function takes a client.Object (a core.Pod, in this case) and returns a list of reconcile.Request for
+// any pod that is associated with a Build custom resource. The goal of this enqueuRequest func is not to be too smart
+// about the state of the pod or the state of the build but rather gather just gather all build that can be found and
+// let the reconciler figure the small details itself.
+//
+// By nature of the API, the logic here handles all objects as slices, but it's just because these API call *could*
+// return more than 1 resource for each. As it currently stand, it's to be expected that all items fetched that returns
+// a slice returns a slice of length=1.
+func (r *BuildReconciler) enqueueBuildReconcilerForOwnedPod(ctx context.Context, pod client.Object) []reconcile.Request {
+	builds := &spot.BuildList{}
+
+	// Retrieve a list of all the builds that matches the pod's
+	err := r.List(ctx, builds, &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(kPodStatusField, pod.GetName()),
+		Namespace:     pod.GetNamespace(),
+	})
+
+	if err != nil {
+		return []reconcile.Request{}
+	}
+
+	// As described above, it's expected for the build items to be of length = 1.
+	requests := make([]reconcile.Request, len(builds.Items))
+	for i, item := range builds.Items {
+		requests[i] = reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      item.GetName(),
+				Namespace: item.GetNamespace(),
+			},
+		}
+	}
+
+	// These requests are what's used internally by K8S to call the Reconciler of this CRD.
+	return requests
 }
 
 func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*core.Pod, error) {
@@ -223,8 +291,9 @@ func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*cor
 			RestartPolicy:      core.RestartPolicyNever,
 			ServiceAccountName: "spot-controller-manager", // TODO: Most likely to change spot-system/default to support the RBAC settings we need instead
 			Containers: []core.Container{{
-				Name:  "buildkit",
-				Image: env.GetString("BUILDER_IMAGE", "builder:dev"),
+				Name:            "buildkit",
+				Image:           env.GetString("BUILDER_IMAGE", "builder:dev"),
+				ImagePullPolicy: core.PullNever,
 				Resources: core.ResourceRequirements{
 					Requests: core.ResourceList{
 						"memory": resource.MustParse("1Gi"),
@@ -321,8 +390,6 @@ func (r *BuildReconciler) tagFor(build *spot.Build) string {
 
 func (r *BuildReconciler) markBuildHasErrored(ctx context.Context, build *spot.Build, err error) error {
 	r.EventRecorder.Event(build, "Warning", string(spot.BuildPhaseError), err.Error())
-	logger := log.FromContext(ctx)
-	logger.Error(err, "Error happened with the build")
 	build.Status.Phase = spot.BuildPhaseError
 	return r.Client.Status().Update(ctx, build)
 }

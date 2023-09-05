@@ -37,12 +37,11 @@ spec:
         name: "pierolivierrh/click-mania"
         tag: "latest"
         registry:
-          type: "docker"
           url: "pierolivierrh/click-mania"
         repository:
           dockerfile: Dockerfile
           context: "."
-          url: github.com/releasehub-com/click-mania-test
+          url: https://github.com/releasehub-com/click-mania-test
           ref: "main"
           hash: "abc"
     - name: "mysql"

@@ -222,12 +222,18 @@ spec:
                   builds that are required for this workspace to launch. Builds are
                   seeding the Images as they complete.
                 items:
+                  description: Reference is used to create untyped references to different
+                    object that needs to be tracked inside of Custom Resources. Examples
+                    can be found in Workspace & Build where for workspace, it needs
+                    to reference a build or a pod and uses this struct as a way to
+                    serialize the labels of the underlying resource.
                   properties:
                     name:
-                      description: '`name` is the name of the build. Required'
+                      description: '`name` is the name of the resourec. Required'
                       type: string
                     namespace:
-                      description: '`namespace` is the namespace of the build. Required'
+                      description: '`namespace` is the namespace of the resource.
+                        Required'
                       type: string
                   required:
                   - name
@@ -281,12 +287,18 @@ spec:
                 type: string
               services:
                 additionalProperties:
+                  description: Reference is used to create untyped references to different
+                    object that needs to be tracked inside of Custom Resources. Examples
+                    can be found in Workspace & Build where for workspace, it needs
+                    to reference a build or a pod and uses this struct as a way to
+                    serialize the labels of the underlying resource.
                   properties:
                     name:
-                      description: '`name` is the name of the build. Required'
+                      description: '`name` is the name of the resourec. Required'
                       type: string
                     namespace:
-                      description: '`namespace` is the namespace of the build. Required'
+                      description: '`namespace` is the namespace of the resource.
+                        Required'
                       type: string
                   required:
                   - name

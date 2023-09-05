@@ -3,72 +3,45 @@ package v1alpha1
 import (
 	"fmt"
 
-	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type PodReference struct {
-	// `namespace` is the namespace of the pod.
+// Reference is used to create untyped references to different object
+// that needs to be tracked inside of Custom Resources.
+// Examples can be found in Workspace & Build where for workspace,
+// it needs to reference a build or a pod and uses this struct as a way
+// to serialize the labels of the underlying resource.
+type Reference struct {
+	// `namespace` is the namespace of the resource.
 	// Required
 	Namespace string `json:"namespace" protobuf:"bytes,1,opt,name=namespace"`
-	// `name` is the name of the pod.
+	// `name` is the name of the resourec.
 	// Required
 	Name string `json:"name" protobuf:"bytes,2,opt,name=name"`
 }
 
-func NewPodReference(pod *core.Pod) *PodReference {
-	return &PodReference{
-		Namespace: pod.Namespace,
-		Name:      pod.Name,
+// Returns a new Reference object, the client.Object interface
+// is global and any core resource defined by K8s(Pod, services, etc) as well
+// as CRD (Build, Workspace, etc) implements this interface.
+//
+// NOTE: Since this reference is untype, different type could, in theory, share the same
+// namespace/name and could cause issues. This is why it's important to use generatedName()
+// when creating resources internally.
+func NewReference(obj client.Object) *Reference {
+	return &Reference{
+		Namespace: obj.GetNamespace(),
+		Name:      obj.GetName(),
 	}
 }
 
-func (p PodReference) String() string {
-	return fmt.Sprintf("%s/%s", p.Namespace, p.Name)
+func (r Reference) String() string {
+	return fmt.Sprintf("%s/%s", r.Namespace, r.Name)
 }
 
-func (p PodReference) NamespacedName() types.NamespacedName {
+func (r Reference) NamespacedName() types.NamespacedName {
 	return types.NamespacedName{
-		Name:      p.Name,
-		Namespace: p.Namespace,
+		Name:      r.Name,
+		Namespace: r.Namespace,
 	}
-}
-
-type ServiceReference struct {
-	// `namespace` is the namespace of the build.
-	// Required
-	Namespace string `json:"namespace" protobuf:"bytes,1,opt,name=namespace"`
-	// `name` is the name of the build.
-	// Required
-	Name string `json:"name" protobuf:"bytes,2,opt,name=name"`
-}
-
-func NewServiceReference(service *core.Service) ServiceReference {
-	return ServiceReference{
-		Namespace: service.Namespace,
-		Name:      service.Name,
-	}
-}
-
-func (s ServiceReference) NamespacedName() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      s.Name,
-		Namespace: s.Namespace,
-	}
-}
-func (s ServiceReference) String() string {
-	return fmt.Sprintf("%s/%s", s.Namespace, s.Name)
-}
-
-type BuildReference struct {
-	// `namespace` is the namespace of the build.
-	// Required
-	Namespace string `json:"namespace" protobuf:"bytes,1,opt,name=namespace"`
-	// `name` is the name of the build.
-	// Required
-	Name string `json:"name" protobuf:"bytes,2,opt,name=name"`
-}
-
-func (b BuildReference) String() string {
-	return fmt.Sprintf("%s/%s", b.Namespace, b.Name)
 }

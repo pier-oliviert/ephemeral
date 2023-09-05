@@ -15,8 +15,8 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.stage
-      name: Stage
+    - jsonPath: .status.phase
+      name: Phase
       type: string
     name: v1alpha1
     schema:
@@ -161,10 +161,10 @@ spec:
                   the image is ready.
                 properties:
                   name:
-                    description: '`name` is the name of the pod. Required'
+                    description: '`name` is the name of the resourec. Required'
                     type: string
                   namespace:
-                    description: '`namespace` is the namespace of the pod. Required'
+                    description: '`namespace` is the namespace of the resource. Required'
                     type: string
                 required:
                 - name

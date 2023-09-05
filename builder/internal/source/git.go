@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 type Repository struct {
@@ -28,8 +29,9 @@ func FromGitURL(name, url, referenceName string) (*Repository, error) {
 
 	var err error
 	repo.Repository, err = git.PlainClone(repo.path, false, &git.CloneOptions{
-		URL:          url,
-		SingleBranch: true,
+		URL:           url,
+		SingleBranch:  true,
+		ReferenceName: plumbing.ReferenceName(referenceName),
 	})
 	if err != nil {
 		return nil, err

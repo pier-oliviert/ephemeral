@@ -32,7 +32,6 @@ func main() {
 		handleFatalErr(ctx, client, err)
 	}
 
-	logger.Info("Fetching Build CRD")
 	build, err := client.GetBuild(ctx, strings.Split(os.Getenv("BUILD_REFERENCE"), "/"))
 	if err != nil {
 		handleFatalErr(ctx, client, err)

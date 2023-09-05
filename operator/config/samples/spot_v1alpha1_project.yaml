@@ -11,6 +11,7 @@ metadata:
   namespace: spot-system
 spec:
   template:
+    host: "release.com"
     components:
       - name: "click-mania"
         command: 
@@ -37,7 +38,6 @@ spec:
           name: "pierolivierrh/click-mania"
           tag: "latest"
           registry:
-            type: "docker"
             url: "pierolivierrh/click-mania"
           repository:
             dockerfile: Dockerfile

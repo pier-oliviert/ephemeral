@@ -55,7 +55,7 @@ func Build(ctx context.Context, workspace *spot.Workspace, c client.Client) erro
 		return c.Status().Update(ctx, workspace)
 	}
 
-	var references []spot.BuildReference
+	var references []spot.Reference
 	for _, build := range builds {
 		if err := c.Create(ctx, build); err != nil {
 			logger.Error(err, "unexpected error creating a build")

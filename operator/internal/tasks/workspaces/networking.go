@@ -55,7 +55,7 @@ func (n *Networking) ingressRuleForNetwork(network *spot.ComponentNetworkSpec, w
 }
 
 func (n *Networking) Start(ctx context.Context, workspace *spot.Workspace) error {
-	workspace.Status.Services = make(map[string]spot.ServiceReference)
+	workspace.Status.Services = make(map[string]spot.Reference)
 	ingressClassName := "nginx"
 	ingress := &networking.Ingress{
 		ObjectMeta: meta.ObjectMeta{
@@ -96,7 +96,7 @@ func (n *Networking) Start(ctx context.Context, workspace *spot.Workspace) error
 				return err
 			}
 
-			workspace.Status.Services[fmt.Sprintf("%s/%s", component.Name, network.Name)] = spot.NewServiceReference(&service)
+			workspace.Status.Services[fmt.Sprintf("%s/%s", component.Name, network.Name)] = *spot.NewReference(&service)
 
 			if network.Ingress != nil {
 				ingressRule, err := n.ingressRuleForNetwork(&network, workspace, service.Name)
