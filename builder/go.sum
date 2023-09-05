@@ -82,8 +82,6 @@ github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 h1:+zs/tPmkDkHx3U66D
 github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376/go.mod h1:an3vInlBmSxCcxctByoQdvwPiA7DTK7jaaFDBTtu0ic=
 github.com/go-git/go-billy/v5 v5.4.1 h1:Uwp5tDRkPr+l/TnbHOQzp+tmJfLceOlbVucgpTz8ix4=
 github.com/go-git/go-billy/v5 v5.4.1/go.mod h1:vjbugF6Fz7JIflbVpl1hJsGjSHNltrSw45YK/ukIvQg=
-github.com/go-git/go-git v4.7.0+incompatible h1:+W9rgGY4DOKKdX2x6HxSR7HNeTxqiKrOvKnuittYVdA=
-github.com/go-git/go-git v4.7.0+incompatible/go.mod h1:6+421e08gnZWn30y26Vchf7efgYLe4dl5OQbBSUXShE=
 github.com/go-git/go-git-fixtures/v4 v4.3.2-0.20230305113008-0c11038e723f h1:Pz0DHeFij3XFhoBRGUDPzSJ+w2UcK5/0JvF8DRI58r8=
 github.com/go-git/go-git/v5 v5.8.1 h1:Zo79E4p7TRk0xoRgMq0RShiTHGKcKI4+DI6BfJc/Q+A=
 github.com/go-git/go-git/v5 v5.8.1/go.mod h1:FHFuoD6yGz5OSKEBK+aWN9Oah0q54Jxl0abmj6GnqAo=
@@ -190,8 +188,8 @@ github.com/prometheus/common v0.42.0 h1:EKsfXEYo4JpWMHH5cg+KOUWeuJSov1Id8zGR8eeI
 github.com/prometheus/common v0.42.0/go.mod h1:xBwqVerjNdUDjgODMpudtOMwlOwf2SaTr1yjz4b7Zbc=
 github.com/prometheus/procfs v0.9.0 h1:wzCHvIvM5SxWqYvwgVL7yJY8Lz3PKn49KQtpgMYJfhI=
 github.com/prometheus/procfs v0.9.0/go.mod h1:+pB4zwohETzFnmlpe6yd2lSc+0/46IYZRB/chUwxUZY=
-github.com/releasehub-com/spot/operator v0.0.0-20230829123149-9a157321935c h1:hZ/4DJKZ7TCKRgqRelvsE7yVaukarIUM/E4p5pE+GU0=
-github.com/releasehub-com/spot/operator v0.0.0-20230829123149-9a157321935c/go.mod h1:lWNc1sHRxuvC1PO4MH2Gv54f+2t+guhNWUmlF1qnvvg=
+github.com/releasehub-com/spot/operator v0.0.0-20230905124330-7e68f83b8624 h1:J7CQw6mLcnoQ/Vlv29M8Y4S4xt+PJZMhaoOIKlj21XE=
+github.com/releasehub-com/spot/operator v0.0.0-20230905124330-7e68f83b8624/go.mod h1:lWNc1sHRxuvC1PO4MH2Gv54f+2t+guhNWUmlF1qnvvg=
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/sergi/go-diff v1.1.0 h1:we8PVUC3FE2uYfodKH/nBHMSetSfHDR6scGdBi+erh0=
