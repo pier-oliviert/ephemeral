@@ -75,37 +75,7 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	// Let's first see if one of the existing condition has failed since that would be unrecoverable
 	// and the reconcilation can be done with this build.
 	if build.Status.Conditions.Phase() == spot.BuildPhaseError {
-		// A build error means the whole workspace can't progress further. Let's notify workspace and call it.
-		var workspace spot.Workspace
-		var reference *meta.OwnerReference
-		for _, ref := range build.ObjectMeta.OwnerReferences {
-			if ref.Kind == "Workspace" {
-				reference = &ref
-				break
-			}
-		}
-
-		if reference == nil {
-			// No reference exists, create an event that notes that this build didn't belong to any workspace and be done with it.
-			r.EventRecorder.Event(&build, "Normal", string(build.Status.Phase), "No workspace to notify: none owns this build")
-			return ctrl.Result{}, nil
-		}
-
-		if err := r.Client.Get(ctx, types.NamespacedName{Namespace: build.Namespace, Name: reference.Name}, &workspace); err != nil {
-			return ctrl.Result{Requeue: false}, r.markBuildHasErrored(ctx, &build, err)
-		}
-
-		// TODO: Workspace CRD should watch for builds and should update
-		// its own stage.
-		workspace.Status.Conditions.SetCondition(&spot.WorkspaceCondition{
-			Type:   spot.WorkspaceConditionImages,
-			Status: spot.ConditionError,
-		})
-		if err := r.Client.SubResource("status").Update(ctx, &workspace); err != nil {
-			logger.Error(err, "fatal error updating the workspace status")
-		}
-
-		return ctrl.Result{Requeue: false}, r.markBuildHasErrored(ctx, &build, errors.New("image could not be built"))
+		return ctrl.Result{}, nil
 	}
 
 	if condition := build.Status.GetCondition(spot.BuildConditionDeployPod); condition.Status == spot.ConditionInitialized {
@@ -144,8 +114,6 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, r.markBuildHasErrored(ctx, &build, err)
 		}
 
-		logger.Info("Pod", "Status", pod.Status)
-
 		for _, cs := range pod.Status.ContainerStatuses {
 			if cs.State.Terminated != nil && cs.State.Terminated.ExitCode != 0 {
 				condition := build.Status.GetCondition(spot.BuildConditionDeployPod)
@@ -157,37 +125,9 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	if build.Status.Conditions.Phase() == spot.BuildPhaseDone {
-		// The build was successful and the pod that ran the build has completed. Let's update the status on
-		// the Workspace now that a build for that workspace is done.
-		var workspace spot.Workspace
-		var reference *meta.OwnerReference
-		for _, ref := range build.ObjectMeta.OwnerReferences {
-			if ref.Kind == "Workspace" {
-				reference = &ref
-				break
-			}
-		}
-
-		if reference == nil {
-			return ctrl.Result{}, r.markBuildHasErrored(ctx, &build, ErrStageWithInvalidState)
-		}
-
-		if err := r.Client.Get(ctx, types.NamespacedName{Namespace: build.Namespace, Name: reference.Name}, &workspace); err != nil {
-			return ctrl.Result{Requeue: false}, r.markBuildHasErrored(ctx, &build, err)
-		}
-
-		if workspace.Status.Images == nil {
-			// This build is the first to add an entry, make the map
-			workspace.Status.Images = make(map[string]spot.BuildImage)
-		}
-
-		// Update workspace with the Image from the build
-		workspace.Status.Images[fmt.Sprintf("%s:%s", build.ImageURL(), r.tagFor(&build))] = *build.Status.Image
-		if err := r.Client.SubResource("status").Update(ctx, &workspace); err != nil {
-			// Can't update the workspace with this build's information.
-			return ctrl.Result{}, r.markBuildHasErrored(ctx, &build, err)
-		}
-
+		// The build was successful, since the pod was in charge of maintaining the state of this
+		// custom resource, there isn't anything for the build to do beside doing some housekeeping.
+		// The pod doesn't need to exist anymore.
 		var pod core.Pod
 		if err := r.Client.Get(ctx, build.Status.Pod.NamespacedName(), &pod); err != nil {
 			if k8sErrors.IsNotFound(err) {

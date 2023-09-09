@@ -627,10 +627,8 @@ func (in *WorkspaceStatus) DeepCopyInto(out *WorkspaceStatus) {
 	}
 	if in.Images != nil {
 		in, out := &in.Images, &out.Images
-		*out = make(map[string]BuildImage, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
+		*out = make([]BuildImage, len(*in))
+		copy(*out, *in)
 	}
 	if in.Services != nil {
 		in, out := &in.Services, &out.Services

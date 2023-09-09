@@ -94,26 +94,12 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	if condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionImages); condition.Status != spot.ConditionSuccess {
-		switch condition.Status {
-		case spot.ConditionInitialized:
-			r.EventRecorder.Event(&workspace, "Normal", string(spot.WorkspaceConditionImages), "deploying builders")
-			if err := tasks.Build(ctx, &workspace, r.Client); err != nil {
-				return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
-			}
-		case spot.ConditionError:
-			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, fmt.Errorf("build failed"))
-		default:
-			if err := tasks.MonitorBuilds(ctx, &workspace, r.Client); err != nil {
-				return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
-			}
-			r.EventRecorder.Event(&workspace, "Normal", string(spot.WorkspaceConditionImages), "waiting for builds to complete")
-		}
-
-		return ctrl.Result{}, nil
+	if condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionBuildingImages); condition.Status != spot.ConditionSuccess {
+		builder := tasks.Builder{Client: r.Client, EventRecorder: r.EventRecorder, UnrecoverableErrCallback: r.markWorkspaceHasErrored}
+		return builder.Reconcile(ctx, &workspace, &condition)
 	}
 
-	if workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionImages).Status == spot.ConditionSuccess {
+	if workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionBuildingImages).Status == spot.ConditionSuccess {
 		condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionDeployment)
 		if condition.Status == spot.ConditionInitialized {
 			r.EventRecorder.Event(&workspace, "Normal", "Deploying", "Deploying services and updating routes")
@@ -174,7 +160,7 @@ func (r *WorkspaceReconciler) terminate(ctx context.Context, workspace *spot.Wor
 func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&spot.Workspace{}).
-		Owns(&spot.Workspace{}).
+		Owns(&spot.Build{}).
 		Complete(r)
 }
 

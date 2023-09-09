@@ -106,7 +106,7 @@ type WorkspaceStatus struct {
 	// Images are seeded by Builds as they are completed. It's
 	// also possible for some services in a workspace to have images that don't
 	// require a build (think database, etc.).
-	Images map[string]BuildImage `json:"images,omitempty"`
+	Images []BuildImage `json:"images,omitempty"`
 
 	// References to services that are created for this workspace.
 	// These service are needed to figure out ports mapping for the
@@ -167,10 +167,10 @@ type WorkspaceConditionType string
 // conditions. Some of them requires conditions to be successful
 // before starting.
 const (
-	WorkspaceConditionNamespace  WorkspaceConditionType = "Namespace"
-	WorkspaceConditionNetworking WorkspaceConditionType = "Networking"
-	WorkspaceConditionImages     WorkspaceConditionType = "Building Images"
-	WorkspaceConditionDeployment WorkspaceConditionType = "Deployment"
+	WorkspaceConditionNamespace      WorkspaceConditionType = "Namespace"
+	WorkspaceConditionNetworking     WorkspaceConditionType = "Networking"
+	WorkspaceConditionBuildingImages WorkspaceConditionType = "Building Images"
+	WorkspaceConditionDeployment     WorkspaceConditionType = "Deployment"
 )
 
 type WorkspaceCondition struct {
