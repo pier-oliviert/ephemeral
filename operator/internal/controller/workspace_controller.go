@@ -17,7 +17,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -71,45 +70,51 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	if condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionNamespace); condition.Status == spot.ConditionInitialized {
-		err := tasks.AssignNamespace(ctx, &workspace, r.Client)
-		if err != nil {
-			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
-		}
-		r.EventRecorder.Event(&workspace, "Normal", "Initialized", fmt.Sprintf("Workspace initialized, assigned to namespace: %s", workspace.Status.Namespace))
-	}
-
-	// Can't move further until the namespace condition is properly setup
 	if condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionNamespace); condition.Status != spot.ConditionSuccess {
-		r.EventRecorder.Event(&workspace, "Normal", string(condition.Type), "Namespace not ready, waiting.")
-		return ctrl.Result{}, nil
+		namespacer := tasks.Namespacer{Client: r.Client, EventRecorder: r.EventRecorder}
+		result, err := namespacer.Reconcile(ctx, &workspace, &condition)
+		if err != nil {
+			return result, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
+		}
+
+		return result, nil
 	}
 
-	if condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionNetworking); condition.Status == spot.ConditionInitialized {
+	if condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionNetworking); condition.Status != spot.ConditionSuccess {
 		r.EventRecorder.Event(&workspace, "Normal", "Networking", "Creating network resources for this workspace")
-		networking := tasks.Networking{Client: r.Client}
-		if err := networking.Start(ctx, &workspace); err != nil {
-			return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
+		networking := tasks.Networking{Client: r.Client, EventRecorder: r.EventRecorder}
+		result, err := networking.Reconcile(ctx, &workspace, &condition)
+
+		if err != nil {
+			return result, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
 		}
-		return ctrl.Result{}, nil
+		return result, nil
 	}
 
 	if condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionBuildingImages); condition.Status != spot.ConditionSuccess {
-		builder := tasks.Builder{Client: r.Client, EventRecorder: r.EventRecorder, UnrecoverableErrCallback: r.markWorkspaceHasErrored}
-		return builder.Reconcile(ctx, &workspace, &condition)
+		builder := tasks.Builder{Client: r.Client, EventRecorder: r.EventRecorder}
+		result, err := builder.Reconcile(ctx, &workspace, &condition)
+		if err != nil {
+			return result, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
+		}
+
+		return result, nil
 	}
 
 	if workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionBuildingImages).Status == spot.ConditionSuccess {
 		condition := workspace.Status.Conditions.GetCondition(spot.WorkspaceConditionDeployment)
 		if condition.Status == spot.ConditionInitialized {
-			r.EventRecorder.Event(&workspace, "Normal", "Deploying", "Deploying services and updating routes")
-			deployment := tasks.Deployment{Client: r.Client}
-			if err := deployment.Start(ctx, &workspace); err != nil {
-				return ctrl.Result{}, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
+			deployer := tasks.Deployer{Client: r.Client}
+			result, err := deployer.Reconcile(ctx, &workspace, &condition)
+			if err != nil {
+				return result, r.markWorkspaceHasErrored(ctx, &workspace, &condition.Type, err)
 			}
+
+			return result, nil
 		}
 	}
 
+	r.EventRecorder.Event(&workspace, "Warning", "Reconciler", "Reached end of reconciler with nothing done. Might be a bug.")
 	return ctrl.Result{}, nil
 }
 

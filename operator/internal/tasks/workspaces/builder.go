@@ -15,10 +15,6 @@ import (
 )
 
 type Builder struct {
-	// UnrecoverableErrCallback is provided by the main reconcile loop to be called when an unrecoverable error
-	// happens during the builder sub-reconcile loop and the workspace needs to set itself to "failed".
-	UnrecoverableErrCallback func(context.Context, *spot.Workspace, *spot.WorkspaceConditionType, error) error
-
 	client.Client
 	record.EventRecorder
 }
@@ -38,7 +34,7 @@ func (b *Builder) Reconcile(ctx context.Context, workspace *spot.Workspace, cond
 	// The Builder condition is initialized which means it's ready to build all the image for this workspace.
 	if condition.Status == spot.ConditionInitialized {
 		if err := b.Build(ctx, workspace); err != nil {
-			return ctrl.Result{}, b.UnrecoverableErrCallback(ctx, workspace, &condition.Type, err)
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -50,12 +46,12 @@ func (b *Builder) Reconcile(ctx context.Context, workspace *spot.Workspace, cond
 	for _, ref := range workspace.Status.Builds {
 		var build spot.Build
 		if err := b.Client.Get(ctx, ref.NamespacedName(), &build); err != nil {
-			return ctrl.Result{}, b.UnrecoverableErrCallback(ctx, workspace, &condition.Type, err)
+			return ctrl.Result{}, err
 		}
 
 		switch build.Status.Phase {
 		case spot.BuildPhaseError:
-			return ctrl.Result{}, b.UnrecoverableErrCallback(ctx, workspace, &condition.Type, fmt.Errorf("build failed"))
+			return ctrl.Result{}, fmt.Errorf("build failed")
 
 		case spot.BuildPhaseDone:
 			workspace.Status.Images = append(workspace.Status.Images, *build.Status.Image)
@@ -77,7 +73,7 @@ func (b *Builder) Reconcile(ctx context.Context, workspace *spot.Workspace, cond
 	})
 
 	if err := b.Status().Update(ctx, workspace); err != nil {
-		return ctrl.Result{}, b.UnrecoverableErrCallback(ctx, workspace, &condition.Type, err)
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
