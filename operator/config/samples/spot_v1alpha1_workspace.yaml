@@ -34,16 +34,14 @@ spec:
         - name: "DB_HOST"
           value: "mysql"
       image:
-        name: "pierolivierrh/click-mania"
-        tag: "latest"
         registry:
           url: "pierolivierrh/click-mania"
+          tag: latest
         repository:
           dockerfile: Dockerfile
           context: "."
           url: https://github.com/releasehub-com/click-mania-test
           ref: "main"
-          hash: "abc"
     - name: "mysql"
       networks:
         - name: "mysql"

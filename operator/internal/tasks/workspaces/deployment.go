@@ -38,9 +38,11 @@ func (d *Deployer) Reconcile(ctx context.Context, workspace *spot.Workspace, con
 			return ctrl.Result{}, err
 		}
 
-		imageName := component.Image.Name
-		if component.Image.Tag != nil {
-			imageName = fmt.Sprintf("%s:%s", imageName, *component.Image.Tag)
+		registry := component.Image.Registry
+
+		imageName := registry.URL
+		if len(registry.Tags) != 0 {
+			imageName = fmt.Sprintf("%s:%s", imageName, registry.Tags[0])
 		}
 
 		pod := core.Pod{

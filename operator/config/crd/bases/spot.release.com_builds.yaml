@@ -42,17 +42,30 @@ spec:
                   For an image to be succesfully built, it needs to have a RegistrySpec
                   associated with it.
                 properties:
-                  name:
-                    description: Name of the image. If the image is not an official
-                      one and a URL needs to be provided, `RegistrySpec` needs to
-                      provide that URL.
-                    type: string
                   registry:
                     description: Registry is where all the information for the container
                       registry lives. It needs to be properly configured for the build
                       to be pushed successfully. A build is pushed to the registry
                       only if the `RepositoryContext` exists with this `Registry`
                     properties:
+                      secret:
+                        description: SecretRef Reference to an existing k8s secret.
+                          The secret need to exist within the same namespace. If the
+                          secret doesn't exists and the repository is private, the
+                          build will fail trying to pull the repository.
+                        type: string
+                      tags:
+                        description: List of tags the image will be exported with
+                          to the registry. This will include the ImageSpec's tag if
+                          it's not set here.
+                        items:
+                          type: string
+                        type: array
+                      target:
+                        description: Target is an optional field to specify what Target
+                          you want to export with this build. This is only usable
+                          for build that supports more than one target.
+                        type: string
                       url:
                         description: "URL is the complete URL that points to a registry.
                           The Images built by the Builder will be pushed to this registry.
@@ -62,6 +75,7 @@ spec:
                           provided a secret for when a service account can't be set."
                         type: string
                     required:
+                    - secret
                     - url
                     type: object
                   repository:
@@ -82,6 +96,12 @@ spec:
                       ref:
                         description: Reference is usually a branch.
                         type: string
+                      secret:
+                        description: SecretRef Reference to an existing k8s secret.
+                          The secret need to exist within the same namespace. If the
+                          secret doesn't exists and the repository is private, the
+                          build will fail trying to pull the repository.
+                        type: string
                       url:
                         description: URL of the repository
                         type: string
@@ -89,17 +109,9 @@ spec:
                     - context
                     - dockerfile
                     - ref
+                    - secret
                     - url
                     type: object
-                  tag:
-                    description: Tag is what will be used to tag the image once it's
-                      pushed to the container's registry (ecr, etc.) If no tag is
-                      set, it will use the workspace tag This can be useful if a workspace
-                      builds multiple images and each of the images will be tagged
-                      the same value. Defaults to latest
-                    type: string
-                required:
-                - name
                 type: object
             type: object
           status:

@@ -11,20 +11,7 @@ type ImageSpec struct {
 	// lives. It needs to be properly configured for the build to
 	// be pushed successfully. A build is pushed to the registry only
 	// if the `RepositoryContext` exists with this `Registry`
-	Registry *RegistrySpec `json:"registry,omitempty"`
-
-	// Tag is what will be used to tag the image once it's
-	// pushed to the container's registry (ecr, etc.)
-	// If no tag is set, it will use the workspace tag
-	// This can be useful if a workspace builds multiple images
-	// and each of the images will be tagged the same value.
-	// Defaults to latest
-	Tag *string `json:"tag,omitempty"`
-
-	// Name of the image. If the image is not an official
-	// one and a URL needs to be provided, `RegistrySpec`
-	// needs to provide that URL.
-	Name string `json:"name"`
+	Registry RegistrySpec `json:"registry,omitempty"`
 }
 
 type RepositorySpec struct {
@@ -42,4 +29,32 @@ type RepositorySpec struct {
 
 	// Reference is usually a branch.
 	Ref string `json:"ref"`
+}
+
+type RegistrySpec struct {
+	// URL is the complete URL that points to a registry.
+	// The Images built by the Builder will be pushed to this registry.
+	// If the registry is private, the service account that the builder runs in
+	// needs to have write access to the registry.
+	//
+	// DockerHub special case is also supported here. If the URL is not a valid URL,
+	// it will be expected to be a DockerHub image.
+	URL string `json:"url"`
+
+	// Tag to use when deploying the image as part of the workspace.
+	// If the tag is not set, it will try to search for a default. If the
+	// `Tags` field is set, it will use the first tag in that list.
+	// If the `Tags` field is not set either, this field will be set to `latest`
+	// +optional
+	Tag *string `json:"tag,omitempty"`
+
+	// List of tags the image will be exported with to the registry.
+	// +optional
+	Tags []string `json:"tags,omitempty"`
+
+	// Target is an optional field to specify what Target you want
+	// to export with this build. This is only usable for build that supports
+	// more than one target.
+	// +optional
+	Target *string `json:"target,omitempty"`
 }

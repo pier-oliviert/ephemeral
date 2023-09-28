@@ -22,12 +22,9 @@ import (
 	"fmt"
 
 	core "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/env"
 
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	spot "github.com/releasehub-com/spot/operator/api/v1alpha1"
+	tasks "github.com/releasehub-com/spot/operator/internal/tasks/builds"
 )
 
 var ErrStageWithInvalidState = errors.New("stage did not match the status of the build")
@@ -79,28 +77,13 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	if condition := build.Status.GetCondition(spot.BuildConditionDeployPod); condition.Status == spot.ConditionInitialized {
-		// The Build is just initialized and nothing has been processed, yet. For the Build to actually start, a pod
-		// needs to be scheduled with the right service account so that it can update the state of the Build has it goes
-		// through each of the steps.
-		logger.Info("Launching pod")
-		pod, err := r.buildPod(ctx, &build)
+		pd := tasks.PodDeployment{Client: r.Client, EventRecorder: r.EventRecorder}
+		result, err := pd.Reconcile(ctx, &build, &condition)
 		if err != nil {
-			return ctrl.Result{}, r.markBuildHasErrored(ctx, &build, err)
+			return result, r.markBuildHasErrored(ctx, &build, err)
 		}
 
-		// It's important to set the condition first before calling conditions.Phase() as otherwise it would
-		// not include the state of this condition when deriving the value.
-		build.Status.SetCondition(spot.BuildCondition{
-			Type:   spot.BuildConditionDeployPod,
-			Status: spot.ConditionInProgress,
-		})
-
-		build.Status.Pod = spot.NewReference(pod)
-		build.Status.Phase = build.Status.Conditions.Phase()
-
-		if err := r.Client.Status().Update(ctx, &build); err != nil {
-			return ctrl.Result{}, r.markBuildHasErrored(ctx, &build, err)
-		}
+		return result, nil
 	}
 
 	if build.Status.Conditions.Phase() == spot.BuildPhaseRunning {
@@ -209,123 +192,6 @@ func (r *BuildReconciler) enqueueBuildReconcilerForOwnedPod(ctx context.Context,
 
 	// These requests are what's used internally by K8S to call the Reconciler of this CRD.
 	return requests
-}
-
-func (r *BuildReconciler) buildPod(ctx context.Context, build *spot.Build) (*core.Pod, error) {
-	privileged := true
-	pod := &core.Pod{
-		ObjectMeta: meta.ObjectMeta{
-			Namespace:    build.Namespace,
-			GenerateName: fmt.Sprintf("build-%s-", build.Name),
-			Annotations:  map[string]string{},
-			OwnerReferences: []meta.OwnerReference{
-				{
-					APIVersion: build.APIVersion,
-					Kind:       build.Kind,
-					Name:       build.Name,
-					UID:        build.UID,
-				},
-			},
-		},
-		Spec: core.PodSpec{
-			RestartPolicy:      core.RestartPolicyNever,
-			ServiceAccountName: "spot-controller-manager", // TODO: Most likely to change spot-system/default to support the RBAC settings we need instead
-			Containers: []core.Container{{
-				Name:            "buildkit",
-				Image:           env.GetString("BUILDER_IMAGE", "builder:dev"),
-				ImagePullPolicy: core.PullNever,
-				Resources: core.ResourceRequirements{
-					Requests: core.ResourceList{
-						"memory": resource.MustParse("1Gi"),
-					},
-					Limits: core.ResourceList{
-						"memory": resource.MustParse("2Gi"),
-					},
-				},
-				Env: []core.EnvVar{
-					{
-						Name:  "BUILD_REFERENCE",
-						Value: build.GetReference().String(),
-					},
-					{
-						Name:  "REPOSITORY_URL",
-						Value: build.Spec.Image.Repository.URL,
-					},
-					{
-						Name:  "REPOSITORY_REF",
-						Value: build.Spec.Image.Repository.Ref,
-					},
-					{
-						Name:  "IMAGE_URL",
-						Value: build.ImageURL(),
-					},
-					{
-						Name:  "IMAGE_TAG",
-						Value: r.tagFor(build),
-					},
-				},
-				SecurityContext: &core.SecurityContext{
-					Privileged: &privileged,
-				},
-				VolumeMounts: []core.VolumeMount{{
-					Name:      "buildkit-socket",
-					MountPath: "/run/buildkit/",
-				}},
-			},
-				{
-					Name:  "buildkitd",
-					Image: "moby/buildkit:master",
-					Resources: core.ResourceRequirements{
-						Requests: core.ResourceList{
-							"memory": resource.MustParse("1Gi"),
-						},
-						Limits: core.ResourceList{
-							"memory": resource.MustParse("2Gi"),
-						},
-					},
-					Env: []core.EnvVar{},
-					SecurityContext: &core.SecurityContext{
-						Privileged: &privileged,
-					},
-					LivenessProbe: &core.Probe{
-						ProbeHandler: core.ProbeHandler{
-							Exec: &core.ExecAction{
-								Command: []string{
-									"buildctl",
-									"debug",
-									"workers",
-								},
-							},
-						},
-						InitialDelaySeconds: 5,
-						PeriodSeconds:       30,
-					},
-					VolumeMounts: []core.VolumeMount{{
-						Name:      "buildkit-socket",
-						MountPath: "/run/buildkit/",
-					}},
-				},
-			},
-			Volumes: []core.Volume{{
-				Name: "buildkit-socket",
-				VolumeSource: core.VolumeSource{
-					EmptyDir: &core.EmptyDirVolumeSource{},
-				},
-			}},
-		},
-	}
-
-	err := r.Client.Create(ctx, pod)
-
-	return pod, err
-}
-
-func (r *BuildReconciler) tagFor(build *spot.Build) string {
-	if build.Spec.Image.Tag == nil {
-		return "latest"
-	}
-
-	return *build.Spec.Image.Tag
 }
 
 func (r *BuildReconciler) markBuildHasErrored(ctx context.Context, build *spot.Build, err error) error {

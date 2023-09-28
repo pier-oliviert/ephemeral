@@ -24,4 +24,7 @@ const (
 	ConditionSuccess     ConditionStatus = "Success"
 	ConditionWaiting     ConditionStatus = "Waiting"
 	ConditionError       ConditionStatus = "Error"
+
+	// Used to determine if a condition should be skipped.
+	ConditionSkipping ConditionStatus = "Skipping"
 )

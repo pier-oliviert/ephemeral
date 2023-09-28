@@ -25,6 +25,11 @@ type BuildSpec struct {
 	// For an image to be succesfully built, it needs to have
 	// a RegistrySpec associated with it.
 	Image ImageSpec `json:"image,omitempty"`
+
+	// SecretRef
+	// Reference to an existing k8s secret.
+	// The secret need to exist within the same namespace.
+	SecretRef string `json:"secret"`
 }
 
 // BuildStatus defines the observed state of Build
@@ -123,6 +128,14 @@ func (bc BuildConditions) Phase() BuildPhase {
 	return BuildPhaseRunning
 }
 
+// These constants are the keys that should be used to define secret data
+// Secrets in k8s is a key/value list and as such, the build expects these keys to
+// exists inside the secret. The value for each of the keys is expected to be a valid
+// JSON field.
+// TODO: Document the JSON field structure
+const BuildSecretRegistries string = "registries"
+const BuildSecretRepositories string = "repositories"
+
 type BuildCondition struct {
 	// Type is the name of the condition. Conceptually this represents a task in the process
 	// of a Build.
@@ -179,14 +192,6 @@ func (b *Build) GetReference() Reference {
 		Namespace: b.Namespace,
 		Name:      b.Name,
 	}
-}
-
-func (b *Build) ImageURL() string {
-	if b.Spec.Image.Registry != nil {
-		return b.Spec.Image.Registry.URL
-	}
-
-	return b.Spec.Image.Name
 }
 
 //+kubebuilder:object:root=true
