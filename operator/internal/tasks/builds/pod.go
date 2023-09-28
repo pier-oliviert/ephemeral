@@ -85,6 +85,7 @@ func (p *PodDeployment) pod(build *spot.Build, secret *core.Secret) *core.Pod {
 		Spec: core.PodSpec{
 			RestartPolicy:      core.RestartPolicyNever,
 			ServiceAccountName: "spot-controller-manager", // TODO: Most likely to change spot-system/default to support the RBAC settings we need instead
+			Affinity:           build.Spec.Affinity,
 			Containers: []core.Container{{
 				Name:            "buildkit",
 				Image:           env.GetString("BUILDER_IMAGE", "builder:dev"),

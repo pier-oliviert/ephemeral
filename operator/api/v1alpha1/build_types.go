@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	core "k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,6 +31,11 @@ type BuildSpec struct {
 	// Reference to an existing k8s secret.
 	// The secret need to exist within the same namespace.
 	SecretRef string `json:"secret"`
+
+	// Affinity is used by the CRD to dispatch the pod that will
+	// generate a build with the node affinity set here.
+	// + optional
+	Affinity *core.Affinity `json:"affinity,omitempty"`
 }
 
 // BuildStatus defines the observed state of Build
