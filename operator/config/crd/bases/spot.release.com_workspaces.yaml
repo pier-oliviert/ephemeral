@@ -83,16 +83,17 @@ spec:
                             to the registry only if the `RepositoryContext` exists
                             with this `Registry`
                           properties:
-                            secret:
-                              description: SecretRef Reference to an existing k8s
-                                secret. The secret need to exist within the same namespace.
-                                If the secret doesn't exists and the repository is
-                                private, the build will fail trying to pull the repository.
+                            tag:
+                              description: Tag to use when deploying the image as
+                                part of the workspace. If the tag is not set, it will
+                                try to search for a default. If the `Tags` field is
+                                set, it will use the first tag in that list. If the
+                                `Tags` field is not set either, this field will be
+                                set to `latest`
                               type: string
                             tags:
                               description: List of tags the image will be exported
-                                with to the registry. This will include the ImageSpec's
-                                tag if it's not set here.
+                                with to the registry.
                               items:
                                 type: string
                               type: array
@@ -107,12 +108,12 @@ spec:
                                 a registry. The Images built by the Builder will be
                                 pushed to this registry. If the registry is private,
                                 the service account that the builder runs in needs
-                                to have write access to the registry. \n TODO: Add
-                                a SecretRef so that the Builder CRD can be provided
-                                a secret for when a service account can't be set."
+                                to have write access to the registry. \n DockerHub
+                                special case is also supported here. If the URL is
+                                not a valid URL, it will be expected to be a DockerHub
+                                image."
                               type: string
                           required:
-                          - secret
                           - url
                           type: object
                         repository:
@@ -136,12 +137,6 @@ spec:
                             ref:
                               description: Reference is usually a branch.
                               type: string
-                            secret:
-                              description: SecretRef Reference to an existing k8s
-                                secret. The secret need to exist within the same namespace.
-                                If the secret doesn't exists and the repository is
-                                private, the build will fail trying to pull the repository.
-                              type: string
                             url:
                               description: URL of the repository
                               type: string
@@ -149,7 +144,6 @@ spec:
                           - context
                           - dockerfile
                           - ref
-                          - secret
                           - url
                           type: object
                       type: object
