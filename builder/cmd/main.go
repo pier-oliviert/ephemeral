@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-git/go-git/v5/plumbing"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/releasehub-com/spot/builder/internal/buildkit"
 	"github.com/releasehub-com/spot/builder/internal/k8s"
@@ -39,7 +40,8 @@ func main() {
 
 	var src *source.Repository
 	if err := client.MonitorCondition(ctx, build, spot.BuildConditionSource, func(ctx context.Context, _ *spot.Build) error {
-		src, err = source.FromGitURL("build.Name", os.Getenv("REPOSITORY_URL"), os.Getenv("REPOSITORY_REF"))
+		ref := plumbing.NewHashReference(plumbing.ReferenceName(os.Getenv("REPOSITORY_BRANCH")), plumbing.NewHash(os.Getenv("REPOSITORY_COMMIT")))
+		src, err = source.FromGitURL("build.Name", os.Getenv("REPOSITORY_URL"), ref)
 		return err
 	}); err != nil {
 		handleFatalErr(ctx, client, err)
@@ -49,7 +51,7 @@ func main() {
 	for {
 		cmd := exec.Command("buildctl", "debug", "workers")
 		if err := cmd.Run(); err != nil {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond) // Hack. need something more deterministic at some point
 			continue
 		}
 		break

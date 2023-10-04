@@ -18,7 +18,7 @@ type Repository struct {
 // token.
 //
 // The repo is always cloned from scratch and doesn't check if it exists.
-func FromGitURL(name, url, referenceName string) (*Repository, error) {
+func FromGitURL(name, url string, reference *plumbing.Reference) (*Repository, error) {
 	repo := &Repository{
 		path: fmt.Sprintf("%s/sources/%s", os.TempDir(), name),
 	}
@@ -28,14 +28,24 @@ func FromGitURL(name, url, referenceName string) (*Repository, error) {
 	}
 
 	var err error
-	repo.Repository, err = git.PlainClone(repo.path, false, &git.CloneOptions{
+	repo.Repository, err = git.PlainClone(repo.path, true, &git.CloneOptions{
 		URL:           url,
 		SingleBranch:  true,
-		ReferenceName: plumbing.ReferenceName(referenceName),
+		ReferenceName: reference.Name(),
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		return nil, err
+	}
+
+	w.Checkout(&git.CheckoutOptions{
+		Branch: reference.Name(),
+		Hash:   reference.Hash(),
+	})
 
 	return repo, nil
 }

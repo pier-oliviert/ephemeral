@@ -70,11 +70,10 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: operator:latest
-        imagePullPolicy: Never
+        image: pierolivierrh/spot:alpha
         env:
         - name: BUILDER_IMAGE
-          value: builder:latest
+          value: pierolivierrh/builder:alpha
         name: manager
         securityContext:
           allowPrivilegeEscalation: false

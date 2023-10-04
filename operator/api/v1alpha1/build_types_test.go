@@ -24,7 +24,7 @@ var _ = Describe("Build Types", func() {
 						Status: ConditionSuccess,
 					},
 				},
-			}.Conditions.Phase()).To(Equal(BuildPhaseDone))
+			}.Conditions.CurrentPhase()).To(Equal(BuildPhaseDone))
 		})
 
 		It("Returns BuildPhaseRunning when at least one condition is in progress", func() {
@@ -43,7 +43,7 @@ var _ = Describe("Build Types", func() {
 						Status: ConditionWaiting,
 					},
 				},
-			}.Conditions.Phase()).To(Equal(BuildPhaseRunning))
+			}.Conditions.CurrentPhase()).To(Equal(BuildPhaseRunning))
 
 			Expect(BuildStatus{
 				Conditions: BuildConditions{
@@ -60,7 +60,7 @@ var _ = Describe("Build Types", func() {
 						Status: ConditionInProgress,
 					},
 				},
-			}.Conditions.Phase()).To(Equal(BuildPhaseRunning))
+			}.Conditions.CurrentPhase()).To(Equal(BuildPhaseRunning))
 		})
 
 		It("Returns BuildPhaseError when at least one condition failed", func() {
@@ -79,7 +79,7 @@ var _ = Describe("Build Types", func() {
 						Status: ConditionWaiting,
 					},
 				},
-			}.Conditions.Phase()).To(Equal(BuildPhaseError))
+			}.Conditions.CurrentPhase()).To(Equal(BuildPhaseError))
 		})
 	})
 })

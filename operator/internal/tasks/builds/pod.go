@@ -45,7 +45,7 @@ func (p *PodDeployment) Reconcile(ctx context.Context, build *spot.Build, condit
 	})
 
 	build.Status.Pod = spot.NewReference(pod)
-	build.Status.Phase = build.Status.Conditions.Phase()
+	build.Status.Phase = build.Status.Conditions.CurrentPhase()
 
 	if err := p.Client.Status().Update(ctx, build); err != nil {
 		return ctrl.Result{}, err
@@ -57,7 +57,7 @@ func (p *PodDeployment) Reconcile(ctx context.Context, build *spot.Build, condit
 	})
 
 	build.Status.Pod = spot.NewReference(pod)
-	build.Status.Phase = build.Status.Conditions.Phase()
+	build.Status.Phase = build.Status.Conditions.CurrentPhase()
 
 	if err := p.Client.Status().Update(ctx, build); err != nil {
 		return ctrl.Result{}, err
@@ -87,9 +87,8 @@ func (p *PodDeployment) pod(build *spot.Build, secret *core.Secret) *core.Pod {
 			ServiceAccountName: "spot-controller-manager", // TODO: Most likely to change spot-system/default to support the RBAC settings we need instead
 			Affinity:           build.Spec.Affinity,
 			Containers: []core.Container{{
-				Name:            "buildkit",
-				Image:           env.GetString("BUILDER_IMAGE", "builder:dev"),
-				ImagePullPolicy: core.PullNever,
+				Name:  "buildkit",
+				Image: env.GetString("BUILDER_IMAGE", "builder:dev"),
 				Resources: core.ResourceRequirements{
 					Requests: core.ResourceList{
 						"memory": resource.MustParse("1Gi"),
@@ -108,8 +107,12 @@ func (p *PodDeployment) pod(build *spot.Build, secret *core.Secret) *core.Pod {
 						Value: build.Spec.Image.Repository.URL,
 					},
 					{
-						Name:  "REPOSITORY_REF",
-						Value: build.Spec.Image.Repository.Ref,
+						Name:  "REPOSITORY_BRANCH",
+						Value: build.Spec.Image.Repository.Reference.Name,
+					},
+					{
+						Name:  "REPOSITORY_COMMIT",
+						Value: build.Spec.Image.Repository.Reference.Hash,
 					},
 					{
 						Name:  "IMAGE_URL",

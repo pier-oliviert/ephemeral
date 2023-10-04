@@ -24,11 +24,19 @@ type RepositorySpec struct {
 	// URL of the repository
 	URL string `json:"url"`
 
-	// Hash of the commit to build (usually a sha)
-	Hash string `json:"hash,omitempty"`
+	// Reference Hash
+	Reference GitReference `json:"reference"`
+}
 
-	// Reference is usually a branch.
-	Ref string `json:"ref"`
+// Represents a reference that is used to checkout a repository
+// for a given commit.
+type GitReference struct {
+	// Name refers to the name of the branch we're working off of.
+	// It can be master/main or any valid branch present in the remote repository(git)
+	Name string `json:"name"`
+
+	// The Hash represents the commit SHA of the commit that needs to be checked out.
+	Hash string `json:"hash"`
 }
 
 type RegistrySpec struct {

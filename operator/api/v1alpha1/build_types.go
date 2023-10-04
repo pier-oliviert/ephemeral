@@ -114,7 +114,7 @@ type BuildConditions []BuildCondition
 // Return a BuildPhase that represent the current derivation
 // off the current conditions. If there's no conditions present
 // in the BuildConditions, the phase will defaults to BuildPhaseDone
-func (bc BuildConditions) Phase() BuildPhase {
+func (bc BuildConditions) CurrentPhase() BuildPhase {
 	completed := true
 
 	for _, cond := range bc {

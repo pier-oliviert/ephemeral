@@ -57,7 +57,7 @@ type BuildReconciler struct {
 //+kubebuilder:rbac:groups=spot.release.com,resources=builds,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=spot.release.com,resources=builds/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=spot.release.com,resources=builds/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=pods,verbs=get;watch;list;create;delete
+//+kubebuilder:rbac:groups="",resources=pods;secrets,verbs=get;watch;list;create;delete
 
 func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
@@ -72,7 +72,7 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	// Let's first see if one of the existing condition has failed since that would be unrecoverable
 	// and the reconcilation can be done with this build.
-	if build.Status.Conditions.Phase() == spot.BuildPhaseError {
+	if build.Status.Conditions.CurrentPhase() == spot.BuildPhaseError {
 		return ctrl.Result{}, nil
 	}
 
@@ -86,7 +86,7 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return result, nil
 	}
 
-	if build.Status.Conditions.Phase() == spot.BuildPhaseRunning {
+	if build.Status.Conditions.CurrentPhase() == spot.BuildPhaseRunning {
 		// Most of the lifecycle of a Build CRD is deferred to the pod that was created during the initialization
 		// process. The only thing to watch out for here is to make sure the pod is either scheduled to run, or is running & healthy.
 		// If, for any reason, the pod is dead, the reconciler needs to mark this build as failed.
@@ -107,7 +107,7 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	}
 
-	if build.Status.Conditions.Phase() == spot.BuildPhaseDone {
+	if build.Status.Conditions.CurrentPhase() == spot.BuildPhaseDone {
 		// The build was successful, since the pod was in charge of maintaining the state of this
 		// custom resource, there isn't anything for the build to do beside doing some housekeeping.
 		// The pod doesn't need to exist anymore.
@@ -122,11 +122,7 @@ func (r *BuildReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, r.markBuildHasErrored(ctx, &build, err)
 		}
 
-		r.EventRecorder.Event(&build, "Normal", string(build.Status.Phase), fmt.Sprintf("Clearing the builder pod(%s/%s)", pod.Namespace, pod.Name))
-
-		if err := r.Client.Delete(ctx, &pod); err != nil {
-			r.EventRecorder.Event(&build, "Warning", string(build.Status.Phase), fmt.Sprintf("Could not delete the pod as part of housekeeping, pod: %s/%s", pod.Namespace, pod.Name))
-		}
+		r.EventRecorder.Event(&build, "Normal", string(build.Status.Phase), fmt.Sprintf("Build was finished in pod(%s/%s)", pod.Namespace, pod.Name))
 	}
 
 	return ctrl.Result{}, nil
