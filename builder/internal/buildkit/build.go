@@ -34,7 +34,7 @@ func Build(ctx context.Context, repo *source.Repository) (gcr.ImageIndex, error)
 	cmd := exec.CommandContext(ctx, "buildctl", "build", "--frontend", "dockerfile.v0")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Args = append(cmd.Args, "--local", fmt.Sprintf("context=%s", repo.Path()))
+	cmd.Args = append(cmd.Args, "--local", fmt.Sprintf("context=%s", repo.BuildContext()))
 	cmd.Args = append(cmd.Args, "--local", fmt.Sprintf("dockerfile=%s", repo.Path()))
 	cmd.Args = append(cmd.Args, "--output", fmt.Sprintf("type=oci,dest=%s,tar=false", ImagePath))
 	err := cmd.Run()

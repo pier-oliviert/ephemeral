@@ -40,8 +40,20 @@ func main() {
 
 	var src *source.Repository
 	if err := client.MonitorCondition(ctx, build, spot.BuildConditionSource, func(ctx context.Context, _ *spot.Build) error {
-		ref := plumbing.NewHashReference(plumbing.ReferenceName(os.Getenv("REPOSITORY_BRANCH")), plumbing.NewHash(os.Getenv("REPOSITORY_COMMIT")))
-		src, err = source.FromGitURL("build.Name", os.Getenv("REPOSITORY_URL"), ref)
+		logger.Info("Configuring data for repository access")
+		secrets, err := source.SecretsFromReader(strings.NewReader(os.Getenv("REPOSITORY_SECRETS")))
+		if err != nil {
+			return err
+		}
+
+		opts := source.RepositoryOpts{
+			BuildContext: os.Getenv("REPOSITORY_CONTEXT"),
+			Host:         os.Getenv("REPOSITORY_URL"),
+			Reference:    plumbing.NewHashReference(plumbing.NewBranchReferenceName(os.Getenv("REPOSITORY_BRANCH")), plumbing.NewHash(os.Getenv("REPOSITORY_COMMIT"))),
+			Secrets:      secrets,
+		}
+
+		src, err = source.Git(ctx, opts)
 		return err
 	}); err != nil {
 		handleFatalErr(ctx, client, err)

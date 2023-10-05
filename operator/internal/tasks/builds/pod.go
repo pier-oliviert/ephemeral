@@ -87,8 +87,9 @@ func (p *PodDeployment) pod(build *spot.Build, secret *core.Secret) *core.Pod {
 			ServiceAccountName: "spot-controller-manager", // TODO: Most likely to change spot-system/default to support the RBAC settings we need instead
 			Affinity:           build.Spec.Affinity,
 			Containers: []core.Container{{
-				Name:  "buildkit",
-				Image: env.GetString("BUILDER_IMAGE", "builder:dev"),
+				Name:            "buildkit",
+				ImagePullPolicy: core.PullAlways,
+				Image:           env.GetString("BUILDER_IMAGE", "builder:dev"),
 				Resources: core.ResourceRequirements{
 					Requests: core.ResourceList{
 						"memory": resource.MustParse("1Gi"),
@@ -113,6 +114,10 @@ func (p *PodDeployment) pod(build *spot.Build, secret *core.Secret) *core.Pod {
 					{
 						Name:  "REPOSITORY_COMMIT",
 						Value: build.Spec.Image.Repository.Reference.Hash,
+					},
+					{
+						Name:  "REPOSITORY_CONTEXT",
+						Value: build.Spec.Image.Repository.Context,
 					},
 					{
 						Name:  "IMAGE_URL",

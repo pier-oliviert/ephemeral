@@ -919,19 +919,29 @@ spec:
                       dockerfile:
                         description: Location of your Dockerfile within the repository.
                         type: string
-                      hash:
-                        description: Hash of the commit to build (usually a sha)
-                        type: string
-                      ref:
-                        description: Reference is usually a branch.
-                        type: string
+                      reference:
+                        description: Reference Hash
+                        properties:
+                          hash:
+                            description: The Hash represents the commit SHA of the
+                              commit that needs to be checked out.
+                            type: string
+                          name:
+                            description: Name refers to the name of the branch we're
+                              working off of. It can be master/main or any valid branch
+                              present in the remote repository(git)
+                            type: string
+                        required:
+                        - hash
+                        - name
+                        type: object
                       url:
                         description: URL of the repository
                         type: string
                     required:
                     - context
                     - dockerfile
-                    - ref
+                    - reference
                     - url
                     type: object
                 type: object

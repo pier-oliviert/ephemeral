@@ -1,16 +1,30 @@
 package source
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type Repository struct {
-	path string
+	buildContext string
+	path         string
 	*git.Repository
+}
+
+type RepositoryOpts struct {
+	BuildContext string
+	Host         string
+
+	Reference *plumbing.Reference
+
+	Secrets Secrets
 }
 
 // FromGitURL returns a fully configured Repository that can be used to build
@@ -18,21 +32,39 @@ type Repository struct {
 // token.
 //
 // The repo is always cloned from scratch and doesn't check if it exists.
-func FromGitURL(name, url string, reference *plumbing.Reference) (*Repository, error) {
+func Git(ctx context.Context, opts RepositoryOpts) (*Repository, error) {
+	var err error
+
+	logger := log.FromContext(ctx)
+	secret, err := opts.Secrets.SecretForHost(opts.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Info("Cloning Git Repository with options", "options", opts)
+
+	auth := &http.BasicAuth{
+		Username: secret.AccessKey,
+		Password: secret.SecretToken,
+	}
+
 	repo := &Repository{
-		path: fmt.Sprintf("%s/sources/%s", os.TempDir(), name),
+		buildContext: opts.BuildContext,
+		path:         fmt.Sprintf("%s/src", os.TempDir()),
 	}
 
 	if err := os.MkdirAll(repo.path, os.ModePerm); err != nil {
 		return nil, err
 	}
 
-	var err error
-	repo.Repository, err = git.PlainClone(repo.path, true, &git.CloneOptions{
-		URL:           url,
+	repo.Repository, err = git.PlainClone(repo.path, false, &git.CloneOptions{
+		URL:           opts.Host,
 		SingleBranch:  true,
-		ReferenceName: reference.Name(),
+		ReferenceName: opts.Reference.Name(),
+		Auth:          auth,
+		NoCheckout:    true,
 	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -42,10 +74,13 @@ func FromGitURL(name, url string, reference *plumbing.Reference) (*Repository, e
 		return nil, err
 	}
 
-	w.Checkout(&git.CheckoutOptions{
-		Branch: reference.Name(),
-		Hash:   reference.Hash(),
+	err = w.Checkout(&git.CheckoutOptions{
+		Hash: opts.Reference.Hash(),
 	})
+
+	if err != nil {
+		return nil, err
+	}
 
 	return repo, nil
 }
@@ -54,6 +89,12 @@ func FromGitURL(name, url string, reference *plumbing.Reference) (*Repository, e
 // the repository was cloned.
 func (r *Repository) Path() string {
 	return r.path
+}
+
+// BuildContext return the absolute path
+// to the context set by the user.
+func (r *Repository) BuildContext() string {
+	return path.Join(r.path, r.buildContext)
 }
 
 // Ref returns the git reference(https://git-scm.com/book/en/v2/Git-Internals-Git-References)
