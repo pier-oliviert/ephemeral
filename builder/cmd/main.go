@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -79,18 +78,13 @@ func main() {
 	}
 
 	logger.Info("Setting up credentials for the registries")
-	auth, err := registries.NewAuth(fmt.Sprintf("%s/%s", os.Getenv("HOME"), ".docker"))
+	keychain, err := registries.NewKeychain(strings.NewReader(os.Getenv("REGISTRY_SECRETS")))
 	if err != nil {
 		handleFatalErr(ctx, client, err)
 	}
 
-	auth.Set(os.Getenv("REGISTRY_URL"))
-	if err := auth.Store(); err != nil {
-		handleFatalErr(ctx, client, err)
-	}
-
 	if err := client.MonitorCondition(ctx, build, spot.BuildConditionRegistry, func(ctx context.Context, build *spot.Build) error {
-		image, err := registries.Upload(imageIndex, env.GetString("REGISTRY_URL", ""))
+		image, err := registries.Upload(ctx, imageIndex, env.GetString("IMAGE_URL", ""), keychain)
 		build.Status.Image = image
 		return err
 	}); err != nil {

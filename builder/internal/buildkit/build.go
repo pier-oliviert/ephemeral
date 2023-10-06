@@ -29,13 +29,13 @@ var ImagePath = fmt.Sprintf("%s/%s", os.TempDir(), "image")
 func Build(ctx context.Context, repo *source.Repository) (gcr.ImageIndex, error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("Starting a build from a Repo", "Path", repo.Path())
+	logger.Info("Starting a build from a Repo", "Path", repo.BuildContext())
 
 	cmd := exec.CommandContext(ctx, "buildctl", "build", "--frontend", "dockerfile.v0")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Args = append(cmd.Args, "--local", fmt.Sprintf("context=%s", repo.BuildContext()))
-	cmd.Args = append(cmd.Args, "--local", fmt.Sprintf("dockerfile=%s", repo.Path()))
+	cmd.Args = append(cmd.Args, "--local", fmt.Sprintf("dockerfile=%s", repo.BuildContext()))
 	cmd.Args = append(cmd.Args, "--output", fmt.Sprintf("type=oci,dest=%s,tar=false", ImagePath))
 	err := cmd.Run()
 	if err != nil {
