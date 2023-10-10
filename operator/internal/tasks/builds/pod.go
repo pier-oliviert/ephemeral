@@ -149,6 +149,28 @@ func (p *PodDeployment) pod(build *spot.Build, secret *core.Secret) *core.Pod {
 							},
 						},
 					},
+					{
+						Name: "BUILD_ARGUMENTS",
+						ValueFrom: &core.EnvVarSource{
+							SecretKeyRef: &core.SecretKeySelector{
+								LocalObjectReference: core.LocalObjectReference{
+									Name: secret.Name,
+								},
+								Key: spot.BuildSecretArguments,
+							},
+						},
+					},
+					{
+						Name: "BUILD_SECRETS",
+						ValueFrom: &core.EnvVarSource{
+							SecretKeyRef: &core.SecretKeySelector{
+								LocalObjectReference: core.LocalObjectReference{
+									Name: secret.Name,
+								},
+								Key: spot.BuildSecretSecrets,
+							},
+						},
+					},
 				},
 				SecurityContext: &core.SecurityContext{
 					Privileged: &privileged,

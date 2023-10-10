@@ -71,7 +71,12 @@ func main() {
 
 	var imageIndex v1.ImageIndex
 	if err := client.MonitorCondition(ctx, build, spot.BuildConditionBuilding, func(ctx context.Context, build *spot.Build) error {
-		imageIndex, err = buildkit.Build(ctx, src)
+		secrets, arguments, err := buildkit.ParseAttributes(ctx, strings.NewReader(os.Getenv("BUILD_ARGUMENTS")), strings.NewReader(os.Getenv("BUILD_SECRETS")))
+		if err != nil {
+			return err
+		}
+
+		imageIndex, err = buildkit.Build(ctx, src, secrets, arguments)
 		return err
 	}); err != nil {
 		handleFatalErr(ctx, client, err)

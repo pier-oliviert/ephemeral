@@ -27,11 +27,12 @@ type RepositoryOpts struct {
 	Secrets Secrets
 }
 
-// FromGitURL returns a fully configured Repository that can be used to build
-// an image. If the repository is private, the url needs to include the access
-// token.
+// Git returns a fully configured Repository that can be used to build
+// an image. If the repository is private, the proper credentials needs to
+// be included as part of RepositoryOpts.
 //
-// The repo is always cloned from scratch and doesn't check if it exists.
+// The Repository will be checked out using the Reference passed in the
+// RepositoryOpts
 func Git(ctx context.Context, opts RepositoryOpts) (*Repository, error) {
 	var err error
 

@@ -141,6 +141,8 @@ func (bc BuildConditions) CurrentPhase() BuildPhase {
 // TODO: Document the JSON field structure
 const BuildSecretRegistries string = "registries"
 const BuildSecretRepositories string = "repositories"
+const BuildSecretArguments string = "arguments"
+const BuildSecretSecrets string = "secrets"
 
 type BuildCondition struct {
 	// Type is the name of the condition. Conceptually this represents a task in the process
