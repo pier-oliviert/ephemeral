@@ -4,22 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"os"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type Argument struct {
-	Name  string `json:"name"`
+	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 type Arguments []Argument
 
 type Secret struct {
-	Name  string `json:"name"`
+	Key   string `json:"key"`
 	Value string `json:"value"`
 
-	// Path is going to be set after the secret is parsed.
-	Path string
+	File *os.File
 }
 type Secrets []Secret
 
@@ -45,4 +45,31 @@ func ParseAttributes(ctx context.Context, secretReader, argumentReader io.Reader
 	}
 
 	return secrets, arguments, nil
+}
+
+// Buildkit needs the secret to be stored to a file
+// so the secret is going to be stored in a temporary file
+func (s *Secret) Store() (string, error) {
+	if s.File != nil {
+		return s.File.Name(), nil
+	}
+
+	file, err := os.CreateTemp("", s.Key)
+	if err != nil {
+		return "", err
+	}
+
+	if _, err := file.WriteString(s.Value); err != nil {
+		return "", err
+	}
+
+	return file.Name(), nil
+}
+
+func (s *Secret) RemoveFile() error {
+	if s.File != nil {
+		return os.Remove(s.File.Name())
+	}
+
+	return nil
 }

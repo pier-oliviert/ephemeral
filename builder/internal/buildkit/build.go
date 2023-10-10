@@ -39,11 +39,17 @@ func Build(ctx context.Context, repo *source.Repository, secrets Secrets, argume
 	cmd.Args = append(cmd.Args, "--output", fmt.Sprintf("type=oci,dest=%s,tar=false", ImagePath))
 
 	for _, arg := range arguments {
-		cmd.Args = append(cmd.Args, "--build-arg", fmt.Sprintf("%s=%s", arg.Name, arg.Value))
+		cmd.Args = append(cmd.Args, "--build-arg", fmt.Sprintf("%s=%s", arg.Key, arg.Value))
 	}
 
 	for _, secret := range secrets {
-		cmd.Args = append(cmd.Args, "--secret", fmt.Sprintf("id=%s,src=%s", secret.Name, secret.Path))
+		path, err := secret.Store()
+		if err != nil {
+			return nil, err
+		}
+
+		logger.Info("Storing secret at a temporary path", "Path", path)
+		cmd.Args = append(cmd.Args, "--secret", fmt.Sprintf("id=%s,src=%s", secret.Key, path))
 	}
 
 	err := cmd.Run()
