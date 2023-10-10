@@ -39,7 +39,7 @@ func Build(ctx context.Context, repo *source.Repository, secrets Secrets, argume
 	cmd.Args = append(cmd.Args, "--output", fmt.Sprintf("type=oci,dest=%s,tar=false", ImagePath))
 
 	for _, arg := range arguments {
-		cmd.Args = append(cmd.Args, "--build-arg", fmt.Sprintf("%s=%s", arg.Key, arg.Value))
+		cmd.Args = append(cmd.Args, "--opt", fmt.Sprintf("build-arg:%s=%s", arg.Key, arg.Value))
 	}
 
 	for _, secret := range secrets {
